@@ -624,3 +624,18 @@
   gap: 6px;
   margin-top: 12px;
 }
+
+.timeline-clip.drop-target {
+  border: 2px dashed #20c8f2 !important;
+  box-shadow: 0 0 12px rgba(32, 200, 242, 0.4);
+}
+
+.video-track.drag-over {
+  background: rgba(32, 200, 242, 0.08) !important;
+  outline: 1px dashed #20c8f2;
+}
+
+.rank-item-card:hover {
+  border-color: #38bdf8 !important;
+}
+

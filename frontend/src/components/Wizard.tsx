@@ -109,25 +109,37 @@ export default function Wizard() {
     const chosenTemplate = templates.find(t => t.id === selectedTemplateId) || templates[0];
     const accent = chosenTemplate?.accent || '#22d3ee';
 
+    // Pair available video assets with ranking entries
+    const videoAssets = state.assets.filter(a => a.type === 'video');
+    const audioAssets = state.assets.filter(a => a.type === 'audio');
+
     // Build clips from items
-    const clips = items.map((it, idx) => ({
-      id: crypto.randomUUID(),
-      assetId: null,
-      name: `${it.label}.mp4`,
-      sourceStart: 0,
-      sourceEnd: it.duration,
-      duration: it.duration,
-      label: it.label,
-      rank: it.rank,
-      color: idx === items.length - 1 ? accent : '#ffffff',
-      description: it.description,
-    }));
+    const clips = items.map((it, idx) => {
+      const assignedAsset = videoAssets[idx % Math.max(1, videoAssets.length)] || null;
+      return {
+        id: crypto.randomUUID(),
+        assetId: assignedAsset ? assignedAsset.id : null,
+        name: assignedAsset ? assignedAsset.name : `${it.label}.mp4`,
+        url: assignedAsset ? assignedAsset.url : undefined,
+        sourceStart: 0,
+        sourceEnd: it.duration,
+        duration: it.duration,
+        label: it.label,
+        rank: it.rank,
+        color: idx === items.length - 1 ? accent : '#ffffff',
+        description: it.description,
+        speed: 1.0,
+        adjustments: { brightness: 100, contrast: 100, saturation: 100 },
+      };
+    });
 
     // Layout preset colors
     let bgColor = '#000000';
     if (selectedLayoutPreset === 'Dark Navy') bgColor = '#0a1628';
     if (selectedLayoutPreset === 'Charcoal') bgColor = '#1a1a2e';
     if (selectedLayoutPreset === 'Deep Purple') bgColor = '#16082e';
+
+    const bgMusicId = audioAssets[0]?.id || project.musicAssetId || null;
 
     dispatch({
       type: 'UPDATE_PROJECT',
@@ -141,6 +153,7 @@ export default function Wizard() {
         accentColor: accent,
         platform,
         clips,
+        musicAssetId: bgMusicId,
         layout: {
           ...project.layout,
           canvasBackground: bgColor,
@@ -161,7 +174,7 @@ export default function Wizard() {
     });
 
     dispatch({ type: 'SET_WIZARD_OPEN', open: false });
-    dispatch({ type: 'SET_NOTICE', message: 'Project created from wizard!' });
+    dispatch({ type: 'SET_NOTICE', message: 'Project created from wizard with footage paired!' });
   };
 
   return (

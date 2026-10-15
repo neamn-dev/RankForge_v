@@ -4,10 +4,14 @@ export interface Asset {
   name: string;
   filename?: string;
   url: string;
+  thumbnailUrl?: string | null;
   type: 'video' | 'audio' | 'image';
   size: number;
   extension?: string;
   duration?: number;
+  width?: number;
+  height?: number;
+  createdAt?: string;
 }
 
 // ─── Clips ───────────────────────────────────────────────
@@ -23,7 +27,16 @@ export interface Clip {
   rank: number;
   color: string;
   description?: string;
+  speed?: number;
+  transition?: string;
+  adjustments?: {
+    brightness: number;
+    contrast: number;
+    saturation: number;
+  };
+  narration?: string;
 }
+
 
 // ─── Sandwich Layout ─────────────────────────────────────
 export interface TopRegionConfig {
@@ -140,7 +153,7 @@ export interface ExportResult {
 
 // ─── UI ──────────────────────────────────────────────────
 export type ToolName =
-  | 'Media' | 'Templates' | 'Text' | 'Effects'
+  | 'Media' | 'Templates' | 'Ranking' | 'Text' | 'Effects'
   | 'Transitions' | 'Audio' | 'Stickers' | 'Layout' | 'Settings';
 
 export type InspectorTab =

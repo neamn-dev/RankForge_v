@@ -165,3 +165,88 @@ def test_export_validation_no_clips():
     }
     resp = client.post('/api/export', json=payload)
     assert resp.status_code == 400
+
+def test_assets_listing():
+    resp = client.get('/api/assets')
+    assert resp.status_code == 200
+    assets = resp.json()
+    assert isinstance(assets, list)
+    assert len(assets) > 0
+    first = assets[0]
+    assert 'id' in first
+    assert 'name' in first
+    assert 'type' in first
+    assert 'url' in first
+
+def test_asset_upload_and_delete():
+    # Test uploading an image asset
+    dummy_png = b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15c4\x00\x00\x00\rIDATx\x9cc`\x00\x00\x00\x02\x00\x01H\xaf\xa4q\x00\x00\x00\x00IEND\xaeB`\x82'
+    files = {'file': ('test_logo.png', dummy_png, 'image/png')}
+    up_resp = client.post('/api/assets', files=files)
+    assert up_resp.status_code == 200
+    asset_data = up_resp.json()
+    asset_id = asset_data['id']
+    assert asset_data['type'] == 'image'
+
+    # Retrieve file
+    get_file = client.get(f'/api/assets/{asset_id}')
+    assert get_file.status_code == 200
+
+    # Delete
+    del_resp = client.delete(f'/api/assets/{asset_id}')
+    assert del_resp.status_code == 200
+
+    # Verify deleted
+    get_del = client.get(f'/api/assets/{asset_id}')
+    assert get_del.status_code == 404
+
+def test_export_with_real_clip_and_music():
+    # Fetch available assets
+    resp = client.get('/api/assets')
+    assert resp.status_code == 200
+    assets = resp.json()
+    videos = [a for a in assets if a['type'] == 'video']
+    audio = [a for a in assets if a['type'] == 'audio']
+    assert len(videos) > 0
+
+    payload = {
+        'name': 'Pytest Complete Render',
+        'title': 'TOP MOMENT',
+        'hookText': 'WAIT FOR IT',
+        'aspectRatio': '9:16',
+        'resolution': '720p',
+        'fps': 30,
+        'clips': [
+            {
+                'id': 'clip-test-1',
+                'assetId': videos[0]['id'],
+                'name': videos[0]['name'],
+                'sourceStart': 0,
+                'sourceEnd': 1.5,
+                'duration': 1.5,
+                'label': 'Moment #1',
+                'rank': 1,
+                'color': '#22d3ee',
+            }
+        ],
+        'musicAssetId': audio[0]['id'] if audio else None,
+        'musicVolume': 0.2,
+        'layout': {
+            'canvasBackground': '#000000',
+            'topRegion': {'enabled': True, 'height': 12, 'backgroundColor': '#0a1628', 'fontColor': '#ffffff', 'title': 'TOP MOMENT'},
+            'mainRegion': {'fitMode': 'blur-fill', 'cornerRadius': 8, 'showRankBadge': True, 'rankBadgePosition': 'top-left'},
+            'bottomRegion': {'enabled': True, 'height': 12, 'backgroundColor': '#0a1628', 'fontColor': '#ffffff', 'caption': 'WAIT FOR IT'}
+        }
+    }
+
+    exp_resp = client.post('/api/export', json=payload)
+    assert exp_resp.status_code == 200
+    exp_data = exp_resp.json()
+    assert 'id' in exp_data
+    assert exp_data['size'] > 1000
+
+    # Verify file download
+    dl_resp = client.get(f"/api/exports/{exp_data['id']}")
+    assert dl_resp.status_code == 200
+    assert dl_resp.headers['content-type'] == 'video/mp4'
+

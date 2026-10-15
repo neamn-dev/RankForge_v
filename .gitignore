@@ -17,3 +17,6 @@ backend/data/projects/*
 !backend/data/projects/.gitkeep
 backend/data/templates/*
 !backend/data/templates/.gitkeep
+backend/data/thumbnails/*
+!backend/data/thumbnails/.gitkeep
+backend/data/assets.json

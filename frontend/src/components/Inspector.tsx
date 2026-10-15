@@ -1,9 +1,10 @@
 import { useStore, useSelectedClip } from '../store';
 import {
-  ChevronDown, ArrowUp, ArrowDown, RotateCcw, Volume2, Sparkles, SlidersHorizontal,
-  Clock, Eye, Film, Layers, Type, Move, Palette
+  ArrowUp, ArrowDown, RotateCcw, Volume2, Sparkles, SlidersHorizontal,
+  Clock, Film, Layers, Type, Move, Check
 } from 'lucide-react';
 import type { InspectorTab } from '../types';
+import { fmtTime } from '../types';
 
 const TABS: InspectorTab[] = ['Video', 'Audio', 'Speed', 'Animation', 'Adjust', 'Layout'];
 
@@ -23,6 +24,8 @@ export default function Inspector() {
     dispatch({ type: 'COMMIT' });
     dispatch({ type: 'MOVE_CLIP', clipId: clip.id, delta });
   };
+
+  const clipAdjustments = clip?.adjustments || { brightness: 100, contrast: 100, saturation: 100 };
 
   return (
     <aside className="right">
@@ -61,9 +64,9 @@ export default function Inspector() {
 
                 {/* Rank & Overlay Settings */}
                 <div className="prop-section">
-                  <h4><Type size={13} /> Rank & Overlay</h4>
+                  <h4><Type size={13} /> Rank Badge & Overlay</h4>
                   <label>
-                    Rank label
+                    Rank label card
                     <input
                       type="text"
                       value={clip.label || ''}
@@ -103,19 +106,38 @@ export default function Inspector() {
                     </label>
                   </div>
 
+                  <label style={{ marginTop: 10 }}>
+                    Badge position
+                    <select
+                      value={project.layout.mainRegion.rankBadgePosition}
+                      onChange={e => {
+                        dispatch({ type: 'COMMIT' });
+                        dispatch({
+                          type: 'SET_MAIN_REGION',
+                          config: { rankBadgePosition: e.target.value as any },
+                        });
+                      }}
+                    >
+                      <option value="top-left">Top Left</option>
+                      <option value="top-right">Top Right</option>
+                      <option value="bottom-left">Bottom Left</option>
+                      <option value="bottom-right">Bottom Right</option>
+                    </select>
+                  </label>
+
                   <div className="rank-actions" style={{ marginTop: 12 }}>
                     <button onClick={() => moveClip(-1)}>
-                      <ArrowUp size={13} /> Move up
+                      <ArrowUp size={13} /> Move up in ranking
                     </button>
                     <button onClick={() => moveClip(1)}>
-                      <ArrowDown size={13} /> Move down
+                      <ArrowDown size={13} /> Move down in ranking
                     </button>
                   </div>
                 </div>
 
                 {/* Timing & Trimming */}
                 <div className="prop-section">
-                  <h4><Clock size={13} /> Clip Timing & Trim</h4>
+                  <h4><Clock size={13} /> Clip Timing & Trimming</h4>
                   <div className="two-fields">
                     <label>
                       Start (sec)
@@ -153,12 +175,12 @@ export default function Inspector() {
                     </label>
                   </div>
                   <label className="range-label" style={{ marginTop: 10 }}>
-                    Duration <span>{clip.duration.toFixed(1)}s</span>
+                    Clip Duration <span>{clip.duration.toFixed(1)}s</span>
                   </label>
                   <input
                     type="range"
-                    min="1"
-                    max="30"
+                    min="0.5"
+                    max="20"
                     step="0.5"
                     value={clip.duration}
                     onChange={e => {
@@ -187,9 +209,9 @@ export default function Inspector() {
                         });
                       }}
                     >
-                      <option value="fill">Fill (crop to fit canvas)</option>
-                      <option value="fit">Fit (letterbox)</option>
-                      <option value="blur-fill">Blur Fill (aesthetic backdrop)</option>
+                      <option value="fill">Fill (Crop to canvas)</option>
+                      <option value="fit">Fit (Letterbox in canvas)</option>
+                      <option value="blur-fill">Blur Fill (Aesthetic mirror backdrop)</option>
                     </select>
                   </label>
 
@@ -227,7 +249,7 @@ export default function Inspector() {
           <div className="prop-section">
             <h4><Volume2 size={13} /> Background Audio & Music</h4>
             <label>
-              Music track
+              Selected music track
               <select
                 value={project.musicAssetId || ''}
                 onChange={e => {
@@ -241,7 +263,7 @@ export default function Inspector() {
                 <option value="">No background music</option>
                 {audioAssets.map(a => (
                   <option key={a.id} value={a.id}>
-                    {a.name}
+                    {a.name} ({a.duration ? `${fmtTime(a.duration)}` : ''})
                   </option>
                 ))}
               </select>
@@ -265,7 +287,7 @@ export default function Inspector() {
             />
 
             <p className="hint" style={{ marginTop: 12 }}>
-              Audio is automatically ducked and balanced with video dialogue during export.
+              Audio is automatically mixed and balanced with video dialogue during export.
             </p>
 
             <button
@@ -283,34 +305,48 @@ export default function Inspector() {
             ══════════════════════════════════════════════════ */}
         {inspectorTab === 'Speed' && (
           <div className="prop-section">
-            <h4><Clock size={13} /> Playback Speed</h4>
-            <p className="hint">Adjust playback speed for the selected clip:</p>
+            <h4><Clock size={13} /> Playback Speed Multiplier</h4>
+            <p className="hint">Adjust playback speed for Rank #{clip?.rank || 1}:</p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginTop: 10 }}>
-              {[0.5, 0.75, 1.0, 1.25, 1.5, 2.0].map(speed => (
-                <button
-                  key={speed}
-                  className="preset"
-                  style={{
-                    justifyContent: 'center',
-                    fontWeight: 600,
-                    fontSize: 11,
-                    padding: 8,
-                  }}
-                  onClick={() => {
-                    if (!clip) return;
-                    dispatch({ type: 'COMMIT' });
-                    const orig = (clip.sourceEnd || 5) - (clip.sourceStart || 0);
-                    updateClip({ duration: Math.max(0.5, orig / speed) });
-                    dispatch({
-                      type: 'SET_NOTICE',
-                      message: `Speed set to ${speed}x (duration: ${(orig / speed).toFixed(1)}s)`,
-                    });
-                  }}
-                >
-                  {speed}x
-                </button>
-              ))}
+              {[0.5, 0.75, 1.0, 1.25, 1.5, 2.0].map(speed => {
+                const isCurrent = Math.abs((clip?.speed || 1.0) - speed) < 0.05;
+
+                return (
+                  <button
+                    key={speed}
+                    className={`preset ${isCurrent ? 'active' : ''}`}
+                    style={{
+                      justifyContent: 'center',
+                      fontWeight: 700,
+                      fontSize: 11,
+                      padding: '8px 4px',
+                      border: isCurrent ? '1px solid #20c8f2' : undefined,
+                      background: isCurrent ? '#162335' : undefined,
+                      color: isCurrent ? '#20c8f2' : undefined,
+                    }}
+                    onClick={() => {
+                      if (!clip) return;
+                      dispatch({ type: 'COMMIT' });
+                      const orig = (clip.sourceEnd || 5) - (clip.sourceStart || 0);
+                      const newDur = Math.max(0.5, orig / speed);
+                      updateClip({
+                        speed,
+                        duration: Number(newDur.toFixed(2)),
+                      });
+                      dispatch({
+                        type: 'SET_NOTICE',
+                        message: `Speed set to ${speed}x (${newDur.toFixed(1)}s)`,
+                      });
+                    }}
+                  >
+                    {speed}x
+                  </button>
+                );
+              })}
             </div>
+            <p className="hint" style={{ marginTop: 12 }}>
+              Active speed: <b>{clip?.speed || 1.0}x</b> (Applied to FFmpeg setpts and timeline duration).
+            </p>
           </div>
         )}
 
@@ -320,23 +356,36 @@ export default function Inspector() {
         {inspectorTab === 'Animation' && (
           <div className="prop-section">
             <h4><Sparkles size={13} /> Entrance & Transitions</h4>
-            <p className="hint">Ranking entry animations applied to overlays and cards:</p>
+            <p className="hint">Transition preset for Rank #{clip?.rank || 1}:</p>
             {['Pop Up & Bounce', 'Cinematic Slide Up', 'Smooth Crossfade', 'Zoom & Flash', 'Scale In'].map(
-              anim => (
-                <button
-                  key={anim}
-                  className="preset"
-                  onClick={() =>
-                    dispatch({
-                      type: 'SET_NOTICE',
-                      message: `Applied "${anim}" transition to #${clip?.rank || 1}`,
-                    })
-                  }
-                >
-                  <Sparkles size={13} style={{ color: varCyan() }} />
-                  {anim}
-                </button>
-              )
+              anim => {
+                const isSelected = clip?.transition === anim;
+
+                return (
+                  <button
+                    key={anim}
+                    className={`preset ${isSelected ? 'active' : ''}`}
+                    style={{
+                      border: isSelected ? '1px solid #20c8f2' : undefined,
+                      background: isSelected ? '#162335' : undefined,
+                      color: isSelected ? '#20c8f2' : undefined,
+                    }}
+                    onClick={() => {
+                      if (!clip) return;
+                      dispatch({ type: 'COMMIT' });
+                      updateClip({ transition: anim });
+                      dispatch({
+                        type: 'SET_NOTICE',
+                        message: `Applied "${anim}" transition to Rank #${clip.rank}`,
+                      });
+                    }}
+                  >
+                    <Sparkles size={13} style={{ color: isSelected ? '#20c8f2' : '#68798d' }} />
+                    <span style={{ flex: 1, textAlign: 'left' }}>{anim}</span>
+                    {isSelected && <Check size={12} />}
+                  </button>
+                );
+              }
             )}
           </div>
         )}
@@ -346,20 +395,76 @@ export default function Inspector() {
             ══════════════════════════════════════════════════ */}
         {inspectorTab === 'Adjust' && (
           <div className="prop-section">
-            <h4><SlidersHorizontal size={13} /> Color Adjustments</h4>
-            <label className="range-label">Brightness <span>100%</span></label>
-            <input type="range" min="60" max="140" defaultValue="100" />
+            <h4><SlidersHorizontal size={13} /> Real-Time Color Adjustments</h4>
+            <p className="hint">Fine-tune exposure and vibrance for Rank #{clip?.rank || 1}:</p>
 
-            <label className="range-label">Contrast <span>100%</span></label>
-            <input type="range" min="60" max="140" defaultValue="100" />
+            <label className="range-label" style={{ marginTop: 10 }}>
+              Brightness <span>{clipAdjustments.brightness}%</span>
+            </label>
+            <input
+              type="range"
+              min="60"
+              max="140"
+              value={clipAdjustments.brightness}
+              onChange={e => {
+                updateClip({
+                  adjustments: {
+                    ...clipAdjustments,
+                    brightness: Number(e.target.value),
+                  },
+                });
+              }}
+              onMouseUp={() => dispatch({ type: 'COMMIT' })}
+            />
 
-            <label className="range-label">Saturation <span>100%</span></label>
-            <input type="range" min="40" max="160" defaultValue="100" />
+            <label className="range-label" style={{ marginTop: 10 }}>
+              Contrast <span>{clipAdjustments.contrast}%</span>
+            </label>
+            <input
+              type="range"
+              min="60"
+              max="140"
+              value={clipAdjustments.contrast}
+              onChange={e => {
+                updateClip({
+                  adjustments: {
+                    ...clipAdjustments,
+                    contrast: Number(e.target.value),
+                  },
+                });
+              }}
+              onMouseUp={() => dispatch({ type: 'COMMIT' })}
+            />
+
+            <label className="range-label" style={{ marginTop: 10 }}>
+              Saturation <span>{clipAdjustments.saturation}%</span>
+            </label>
+            <input
+              type="range"
+              min="40"
+              max="160"
+              value={clipAdjustments.saturation}
+              onChange={e => {
+                updateClip({
+                  adjustments: {
+                    ...clipAdjustments,
+                    saturation: Number(e.target.value),
+                  },
+                });
+              }}
+              onMouseUp={() => dispatch({ type: 'COMMIT' })}
+            />
 
             <button
               className="reset"
               style={{ width: '100%', marginTop: 14 }}
-              onClick={() => dispatch({ type: 'SET_NOTICE', message: 'Adjustments reset' })}
+              onClick={() => {
+                dispatch({ type: 'COMMIT' });
+                updateClip({
+                  adjustments: { brightness: 100, contrast: 100, saturation: 100 },
+                });
+                dispatch({ type: 'SET_NOTICE', message: 'Color adjustments reset to 100%' });
+              }}
             >
               <RotateCcw size={12} style={{ display: 'inline', marginRight: 5 }} /> Reset Adjustments
             </button>
@@ -386,6 +491,7 @@ export default function Inspector() {
                   config: { height: Number(e.target.value) },
                 })
               }
+              onMouseUp={() => dispatch({ type: 'COMMIT' })}
             />
 
             <label className="range-label" style={{ marginTop: 10 }}>
@@ -402,6 +508,7 @@ export default function Inspector() {
                   config: { height: Number(e.target.value) },
                 })
               }
+              onMouseUp={() => dispatch({ type: 'COMMIT' })}
             />
 
             <button
@@ -416,8 +523,4 @@ export default function Inspector() {
       </div>
     </aside>
   );
-}
-
-function varCyan() {
-  return '#20c8f2';
 }

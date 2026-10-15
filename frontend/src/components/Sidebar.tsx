@@ -1,23 +1,24 @@
 import { useRef, useState } from 'react';
 import {
   FolderOpen, LayoutTemplate, Type, Sparkles, Layers, Music2,
-  Sticker, Settings2, Upload, Search, Grid2X2, Video, AudioLines,
-  Plus, ChevronDown, ArrowUp, ArrowDown, SlidersHorizontal
+  Settings2, Upload, Search, Video, AudioLines,
+  Plus, ChevronDown, ArrowUp, ArrowDown, SlidersHorizontal,
+  Trash2, Play, Pause, Image as ImageIcon, Check, ListOrdered,
+  Shuffle, ArrowUpDown, Target
 } from 'lucide-react';
 import { useStore, useSelectedClip } from '../store';
 import { api } from '../api';
 import type { Asset, Clip, ToolName } from '../types';
-import { fmtBytes } from '../types';
+import { fmtBytes, fmtTime } from '../types';
 
 const NAV_ITEMS: [ToolName, React.ElementType][] = [
   ['Media', FolderOpen],
+  ['Ranking', ListOrdered],
   ['Templates', LayoutTemplate],
-  ['Text', Type],
   ['Layout', SlidersHorizontal],
-  ['Effects', Sparkles],
-  ['Transitions', Layers],
+  ['Text', Type],
   ['Audio', Music2],
-  ['Stickers', Sticker],
+  ['Transitions', Layers],
   ['Settings', Settings2],
 ];
 
@@ -28,9 +29,14 @@ export default function Sidebar() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [query, setQuery] = useState('');
-  const [filter, setFilter] = useState<'All' | 'video' | 'audio'>('All');
+  const [filter, setFilter] = useState<'All' | 'video' | 'audio' | 'image'>('All');
+  const [previewingAssetId, setPreviewingAssetId] = useState<string | null>(null);
+  const audioPreviewRef = useRef<HTMLAudioElement | null>(null);
+
   const audio = assets.filter(a => a.type === 'audio');
   const videos = assets.filter(a => a.type === 'video');
+  const images = assets.filter(a => a.type === 'image');
+
   const visibleAssets = assets.filter(a =>
     (filter === 'All' || a.type === filter) &&
     a.name.toLowerCase().includes(query.toLowerCase())
@@ -46,28 +52,37 @@ export default function Sidebar() {
         fresh.push(data);
       }
       dispatch({ type: 'ADD_ASSETS', assets: fresh });
+
       const vids = fresh.filter(a => a.type === 'video');
       const aud = fresh.find(a => a.type === 'audio');
-      if (vids.length) {
-        dispatch({ type: 'COMMIT' });
-        for (const a of vids) {
-          const c: Clip = {
-            id: crypto.randomUUID(),
-            assetId: a.id,
-            name: a.name,
-            url: a.url,
-            sourceStart: 0,
-            sourceEnd: 5,
-            duration: 5,
-            label: 'Add a label',
-            rank: project.clips.length + 1,
-            color: project.accentColor,
-          };
-          dispatch({ type: 'ADD_CLIP', clip: c });
+
+      // If user had unassigned clips, auto-assign first uploaded video
+      if (vids.length && project.clips.length) {
+        const unassigned = project.clips.filter(c => !c.assetId);
+        if (unassigned.length) {
+          dispatch({ type: 'COMMIT' });
+          unassigned.slice(0, vids.length).forEach((c, idx) => {
+            const v = vids[idx];
+            dispatch({
+              type: 'UPDATE_CLIP',
+              clipId: c.id,
+              payload: {
+                assetId: v.id,
+                name: v.name,
+                url: v.url,
+                sourceStart: 0,
+                sourceEnd: Math.min(v.duration || 5, c.duration),
+              },
+            });
+          });
         }
       }
-      if (aud) dispatch({ type: 'UPDATE_PROJECT', payload: { musicAssetId: aud.id } });
-      dispatch({ type: 'SET_NOTICE', message: `${fresh.length} asset(s) imported` });
+
+      if (aud && !project.musicAssetId) {
+        dispatch({ type: 'UPDATE_PROJECT', payload: { musicAssetId: aud.id } });
+      }
+
+      dispatch({ type: 'SET_NOTICE', message: `${fresh.length} asset(s) imported successfully` });
     } catch (e) {
       dispatch({ type: 'SET_NOTICE', message: e instanceof Error ? e.message : 'Upload failed' });
     } finally {
@@ -75,6 +90,96 @@ export default function Sidebar() {
       if (fileRef.current) fileRef.current.value = '';
     }
   }
+
+  const handleDeleteAsset = async (assetId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await api.deleteAsset(assetId);
+      dispatch({ type: 'REMOVE_ASSET', assetId });
+      dispatch({ type: 'SET_NOTICE', message: 'Asset deleted' });
+    } catch {
+      dispatch({ type: 'REMOVE_ASSET', assetId });
+    }
+  };
+
+  const assignAssetToClip = (asset: Asset, targetClipId?: string) => {
+    const cId = targetClipId || clip?.id || project.clips[0]?.id;
+    if (!cId) {
+      // Add as new clip
+      addAssetAsNewClip(asset);
+      return;
+    }
+    dispatch({ type: 'COMMIT' });
+    dispatch({
+      type: 'UPDATE_CLIP',
+      clipId: cId,
+      payload: {
+        assetId: asset.id,
+        name: asset.name,
+        url: asset.url,
+        sourceStart: 0,
+        sourceEnd: Math.min(asset.duration || 5, 5),
+        duration: Math.min(asset.duration || 5, 5),
+      },
+    });
+    dispatch({ type: 'SET_NOTICE', message: `Assigned "${asset.name}" to Rank #${clip?.rank || 1}` });
+  };
+
+  const addAssetAsNewClip = (asset: Asset) => {
+    dispatch({ type: 'COMMIT' });
+    const newRank = project.clips.length + 1;
+    const newClip: Clip = {
+      id: crypto.randomUUID(),
+      assetId: asset.id,
+      name: asset.name,
+      url: asset.url,
+      sourceStart: 0,
+      sourceEnd: Math.min(asset.duration || 5, 5),
+      duration: Math.min(asset.duration || 5, 5),
+      label: asset.name.replace(/\.[^/.]+$/, ''),
+      rank: newRank,
+      color: project.accentColor,
+    };
+    dispatch({ type: 'ADD_CLIP', clip: newClip });
+    dispatch({ type: 'SET_NOTICE', message: `Added "${asset.name}" to timeline` });
+  };
+
+  const handleAuditionAudio = (asset: Asset, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (previewingAssetId === asset.id) {
+      audioPreviewRef.current?.pause();
+      setPreviewingAssetId(null);
+    } else {
+      if (!audioPreviewRef.current) {
+        audioPreviewRef.current = new Audio();
+      }
+      audioPreviewRef.current.src = asset.url;
+      audioPreviewRef.current.play().catch(() => {});
+      audioPreviewRef.current.onended = () => setPreviewingAssetId(null);
+      setPreviewingAssetId(asset.id);
+    }
+  };
+
+  const handleSaveAsCustomTemplate = async () => {
+    const tplName = prompt('Enter a name for this custom template:', `${project.name} Style`);
+    if (!tplName) return;
+    try {
+      const saved = await api.saveTemplate({
+        name: tplName,
+        category: 'Custom',
+        description: `Custom Sandwich layout with ${project.layout.mainRegion.fitMode} framing.`,
+        colors: [project.titleColor, project.accentColor],
+        title: project.title,
+        accent: project.accentColor,
+        rankStyle: project.layout.mainRegion.rankBadgeStyle,
+        layout: project.layout,
+      });
+      dispatch({ type: 'SET_TEMPLATES', templates: [...templates, saved] });
+      dispatch({ type: 'SET_NOTICE', message: `Template "${tplName}" saved!` });
+    } catch (e) {
+      dispatch({ type: 'SET_NOTICE', message: 'Failed to save template' });
+    }
+  };
 
   return (
     <>
@@ -94,9 +199,10 @@ export default function Sidebar() {
       <section className="left">
         {/* ── Tab bar ── */}
         <div className="tabs">
-          {(tool === 'Media' ? ['Media'] :
+          {(tool === 'Media' ? ['Media Library'] :
+            tool === 'Ranking' ? ['Ranking Entries'] :
             tool === 'Templates' ? ['Templates'] :
-            tool === 'Audio' ? ['Audio'] :
+            tool === 'Audio' ? ['Audio Library'] :
             tool === 'Text' ? ['Text & Titles'] :
             tool === 'Layout' ? ['Sandwich Layout'] :
             [tool]
@@ -105,18 +211,200 @@ export default function Sidebar() {
           ))}
         </div>
 
-        {/* ── Template panel ── */}
-        {tool === 'Templates' ? (
+        {/* ══════════════════════════════════════════════════
+            RANKING ENTRIES PANEL (Viblo / CapCut Inspired)
+            ══════════════════════════════════════════════════ */}
+        {tool === 'Ranking' && (
           <div className="scroll">
             <div className="section-head">
               <div>
-                <b>Template library</b>
-                <small>Start with a style, then customize it.</small>
+                <b>Rank Entries</b>
+                <small>{project.clips.length} ranked items in countdown</small>
               </div>
-              <button className="small-btn" onClick={() =>
-                dispatch({ type: 'SET_NOTICE', message: 'Save current settings as a template from the Layout panel.' })
-              }>
-                <Plus size={14} />New
+              <button
+                className="small-btn"
+                onClick={() => {
+                  dispatch({ type: 'COMMIT' });
+                  const newRank = project.clips.length + 1;
+                  const c: Clip = {
+                    id: crypto.randomUUID(),
+                    assetId: null,
+                    name: `Rank ${newRank} Highlight`,
+                    sourceStart: 0,
+                    sourceEnd: 4,
+                    duration: 4,
+                    label: `Highlight #${newRank}`,
+                    rank: newRank,
+                    color: project.accentColor,
+                  };
+                  dispatch({ type: 'ADD_CLIP', clip: c });
+                }}
+              >
+                <Plus size={14} /> Add Rank
+              </button>
+            </div>
+
+            {/* Quick Renumber Controls */}
+            <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+              <button
+                className="secondary"
+                style={{ flex: 1, fontSize: 10, padding: '6px 8px' }}
+                title="Renumber as Countdown: #5 down to #1"
+                onClick={() => {
+                  dispatch({ type: 'COMMIT' });
+                  dispatch({ type: 'RENUMBER_RANKS', mode: 'countdown' });
+                  dispatch({ type: 'SET_NOTICE', message: 'Renumbered in countdown order (#5 -> #1)' });
+                }}
+              >
+                <ArrowDown size={12} /> Countdown (#5→#1)
+              </button>
+              <button
+                className="secondary"
+                style={{ flex: 1, fontSize: 10, padding: '6px 8px' }}
+                title="Renumber standard: #1 up to #5"
+                onClick={() => {
+                  dispatch({ type: 'COMMIT' });
+                  dispatch({ type: 'RENUMBER_RANKS', mode: 'standard' });
+                  dispatch({ type: 'SET_NOTICE', message: 'Renumbered in standard order (#1→#5)' });
+                }}
+              >
+                <ArrowUp size={12} /> Standard (#1→#5)
+              </button>
+            </div>
+
+            {/* List of ranking entries */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {project.clips.map((c, index) => {
+                const isSelected = clip?.id === c.id;
+                const asset = assets.find(a => a.id === c.assetId);
+
+                return (
+                  <div
+                    key={c.id}
+                    className={`rank-item-card ${isSelected ? 'selected' : ''}`}
+                    style={{
+                      background: isSelected ? '#162335' : '#0e1520',
+                      border: isSelected ? '1px solid #20c8f2' : '1px solid #1c2734',
+                      borderRadius: 8,
+                      padding: 10,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 8,
+                      cursor: 'pointer',
+                    }}
+                    onClick={() => dispatch({ type: 'SET_SELECTED', clipId: c.id })}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span
+                          className="clip-rank-badge"
+                          style={{
+                            background: c.color || project.accentColor,
+                            fontWeight: 800,
+                            fontSize: 11,
+                            padding: '3px 8px',
+                            borderRadius: 6,
+                          }}
+                        >
+                          #{c.rank}
+                        </span>
+                        <input
+                          type="text"
+                          value={c.label || ''}
+                          placeholder="Rank title label"
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: '#ffffff',
+                            fontWeight: 600,
+                            fontSize: 12,
+                            width: 140,
+                          }}
+                          onChange={e => {
+                            dispatch({
+                              type: 'UPDATE_CLIP',
+                              clipId: c.id,
+                              payload: { label: e.target.value },
+                            });
+                          }}
+                          onBlur={() => dispatch({ type: 'COMMIT' })}
+                          onClick={e => e.stopPropagation()}
+                        />
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <button
+                          className="icon"
+                          title="Move up"
+                          disabled={index === 0}
+                          onClick={e => {
+                            e.stopPropagation();
+                            dispatch({ type: 'COMMIT' });
+                            dispatch({ type: 'MOVE_CLIP', clipId: c.id, delta: -1 });
+                          }}
+                        >
+                          <ArrowUp size={13} />
+                        </button>
+                        <button
+                          className="icon"
+                          title="Move down"
+                          disabled={index === project.clips.length - 1}
+                          onClick={e => {
+                            e.stopPropagation();
+                            dispatch({ type: 'COMMIT' });
+                            dispatch({ type: 'MOVE_CLIP', clipId: c.id, delta: 1 });
+                          }}
+                        >
+                          <ArrowDown size={13} />
+                        </button>
+                        <button
+                          className="icon"
+                          title="Delete rank entry"
+                          onClick={e => {
+                            e.stopPropagation();
+                            dispatch({ type: 'COMMIT' });
+                            dispatch({ type: 'REMOVE_CLIP', clipId: c.id });
+                          }}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Media status & duration row */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 10, color: '#7e90a2' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        {asset ? (
+                          <span style={{ color: '#4ade80', display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <Check size={11} /> {asset.name.slice(0, 20)}
+                          </span>
+                        ) : (
+                          <span style={{ color: '#f59e0b', display: 'flex', alignItems: 'center', gap: 4 }}>
+                            ● No video assigned
+                          </span>
+                        )}
+                      </div>
+                      <span>{c.duration.toFixed(1)}s</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ══════════════════════════════════════════════════
+            TEMPLATES PANEL
+            ══════════════════════════════════════════════════ */}
+        {tool === 'Templates' && (
+          <div className="scroll">
+            <div className="section-head">
+              <div>
+                <b>Template Library</b>
+                <small>Choose a visual theme for the sandwich composition.</small>
+              </div>
+              <button className="small-btn" onClick={handleSaveAsCustomTemplate}>
+                <Plus size={14} /> Save Current
               </button>
             </div>
             {templates.map(t => (
@@ -142,23 +430,26 @@ export default function Sidebar() {
               </button>
             ))}
           </div>
+        )}
 
-        /* ── Text panel ── */
-        ) : tool === 'Text' ? (
+        {/* ══════════════════════════════════════════════════
+            TEXT & TITLES PANEL
+            ══════════════════════════════════════════════════ */}
+        {tool === 'Text' && (
           <div className="scroll text-editor">
-            <h3>Text & titles</h3>
-            <p>Customize overlay text for the composition.</p>
+            <h3>Text & Titles</h3>
+            <p>Customize overlay text and banner cards for the composition.</p>
             <label>
-              Main title
+              Main project title
               <textarea
-                rows={3}
+                rows={2}
                 value={project.title}
                 onChange={e => dispatch({ type: 'UPDATE_PROJECT', payload: { title: e.target.value } })}
                 onBlur={() => dispatch({ type: 'COMMIT' })}
               />
             </label>
             <label>
-              Opening hook
+              Opening hook text (first 1.8s)
               <textarea
                 rows={2}
                 value={project.hookText}
@@ -168,7 +459,7 @@ export default function Sidebar() {
             </label>
             <div className="colors">
               <label>
-                Title
+                Title color
                 <input
                   type="color"
                   value={project.titleColor}
@@ -194,82 +485,101 @@ export default function Sidebar() {
               />
               Show opening hook
             </label>
-            {/* ── Top region text ── */}
-            <h4 style={{ marginTop: 20 }}>Top region text</h4>
+
+            {/* Top region text */}
+            <h4 style={{ marginTop: 20 }}>Top banner text</h4>
             <label>
-              Title text
+              Top title
               <input
                 value={project.layout.topRegion.title}
+                placeholder="e.g. TOP 5 VIRAL PLAYS"
                 onChange={e => dispatch({ type: 'SET_TOP_REGION', config: { title: e.target.value } })}
                 onBlur={() => dispatch({ type: 'COMMIT' })}
               />
             </label>
             <label>
-              Subtitle
+              Top subtitle
               <input
                 value={project.layout.topRegion.subtitle}
+                placeholder="e.g. YouTube Shorts Edition"
                 onChange={e => dispatch({ type: 'SET_TOP_REGION', config: { subtitle: e.target.value } })}
                 onBlur={() => dispatch({ type: 'COMMIT' })}
               />
             </label>
-            {/* ── Bottom region text ── */}
-            <h4 style={{ marginTop: 20 }}>Bottom region text</h4>
+
+            {/* Bottom region text */}
+            <h4 style={{ marginTop: 20 }}>Bottom banner text</h4>
             <label>
-              Caption
+              Bottom caption / hook
               <input
                 value={project.layout.bottomRegion.caption}
+                placeholder="e.g. Wait for number one!"
                 onChange={e => dispatch({ type: 'SET_BOTTOM_REGION', config: { caption: e.target.value } })}
                 onBlur={() => dispatch({ type: 'COMMIT' })}
               />
             </label>
             <label>
-              Creator handle
+              Creator handle / watermark
               <input
                 value={project.layout.bottomRegion.creatorHandle}
+                placeholder="e.g. @RankForgeCreator"
                 onChange={e => dispatch({ type: 'SET_BOTTOM_REGION', config: { creatorHandle: e.target.value } })}
                 onBlur={() => dispatch({ type: 'COMMIT' })}
               />
             </label>
           </div>
+        )}
 
-        /* ── Layout panel (Sandwich) ── */
-        ) : tool === 'Layout' ? (
+        {/* ══════════════════════════════════════════════════
+            LAYOUT PANEL (Sandwich Video Composition)
+            ══════════════════════════════════════════════════ */}
+        {tool === 'Layout' && (
           <div className="scroll layout-panel">
             <div className="section-head">
               <div>
                 <b>Sandwich Layout</b>
-                <small>Configure top, main, and bottom regions.</small>
+                <small>Configure top, main video, and bottom regions.</small>
               </div>
+              <button className="small-btn" onClick={handleSaveAsCustomTemplate}>
+                Save Preset
+              </button>
             </div>
 
-            {/* Preset quick buttons */}
-            <div className="layout-presets">
+            {/* Quick Presets */}
+            <div className="layout-presets" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6 }}>
               {[
-                ['Full Black', '#000000'],
-                ['Dark Navy', '#0a1628'],
-                ['Charcoal', '#1a1a2e'],
-                ['Deep Purple', '#16082e'],
-              ].map(([name, color]) => (
+                ['Full Black', '#000000', 'fill'],
+                ['Dark Navy', '#0a1628', 'blur-fill'],
+                ['Charcoal', '#1a1a2e', 'fill'],
+                ['Crimson Fails', '#180a0a', 'blur-fill'],
+                ['Emerald Meme', '#0a1a0f', 'blur-fill'],
+                ['Purple Clutch', '#130a24', 'blur-fill'],
+              ].map(([name, bg, fit]) => (
                 <button
                   key={name}
-                  className={`preset-chip ${
-                    project.layout.topRegion.backgroundColor === color &&
-                    project.layout.bottomRegion.backgroundColor === color ? 'active' : ''
-                  }`}
+                  className="preset"
+                  style={{ fontSize: 10, padding: 8, justifyContent: 'flex-start' }}
                   onClick={() => {
                     dispatch({ type: 'COMMIT' });
-                    dispatch({ type: 'SET_TOP_REGION', config: { backgroundColor: color as string } });
-                    dispatch({ type: 'SET_BOTTOM_REGION', config: { backgroundColor: color as string } });
-                    dispatch({ type: 'SET_LAYOUT', layout: { canvasBackground: color as string } });
+                    dispatch({
+                      type: 'SET_LAYOUT',
+                      layout: {
+                        canvasBackground: bg,
+                        topRegion: { ...project.layout.topRegion, backgroundColor: bg },
+                        bottomRegion: { ...project.layout.bottomRegion, backgroundColor: bg },
+                        mainRegion: { ...project.layout.mainRegion, fitMode: fit as any },
+                      },
+                    });
+                    dispatch({ type: 'SET_NOTICE', message: `Preset "${name}" applied` });
                   }}
                 >
-                  <span className="color-dot" style={{ background: color as string }} />
+                  <i style={{ width: 12, height: 12, borderRadius: 3, background: bg, border: '1px solid #334155' }} />
                   {name}
                 </button>
               ))}
             </div>
 
-            {/* ── Top Region ── */}
+            {/* Top Region */}
             <div className="layout-section">
               <div className="layout-section-head">
                 <label className="toggle-row">
@@ -292,108 +602,45 @@ export default function Sidebar() {
                   </label>
                   <input
                     type="range"
-                    min={5} max={35}
+                    min={5} max={30}
                     value={project.layout.topRegion.height}
                     onChange={e => dispatch({ type: 'SET_TOP_REGION', config: { height: Number(e.target.value) } })}
                     onMouseUp={() => dispatch({ type: 'COMMIT' })}
                   />
                   <label>
-                    Background
-                    <div className="color-field">
-                      <input
-                        type="color"
-                        value={project.layout.topRegion.backgroundColor}
-                        onChange={e => dispatch({ type: 'SET_TOP_REGION', config: { backgroundColor: e.target.value } })}
-                        onBlur={() => dispatch({ type: 'COMMIT' })}
-                      />
-                      <input
-                        type="text"
-                        value={project.layout.topRegion.backgroundColor}
-                        onChange={e => dispatch({ type: 'SET_TOP_REGION', config: { backgroundColor: e.target.value } })}
-                        onBlur={() => dispatch({ type: 'COMMIT' })}
-                      />
-                    </div>
+                    Background color
+                    <input
+                      type="color"
+                      value={project.layout.topRegion.backgroundColor}
+                      onChange={e => dispatch({ type: 'SET_TOP_REGION', config: { backgroundColor: e.target.value } })}
+                      onBlur={() => dispatch({ type: 'COMMIT' })}
+                    />
                   </label>
-                  <label>
-                    Font color
-                    <div className="color-field">
-                      <input
-                        type="color"
-                        value={project.layout.topRegion.fontColor}
-                        onChange={e => dispatch({ type: 'SET_TOP_REGION', config: { fontColor: e.target.value } })}
-                        onBlur={() => dispatch({ type: 'COMMIT' })}
-                      />
-                      <input
-                        type="text"
-                        value={project.layout.topRegion.fontColor}
-                        onChange={e => dispatch({ type: 'SET_TOP_REGION', config: { fontColor: e.target.value } })}
-                        onBlur={() => dispatch({ type: 'COMMIT' })}
-                      />
-                    </div>
-                  </label>
-                  <label className="range-label">
-                    Font size <span>{project.layout.topRegion.fontSize}px</span>
-                  </label>
-                  <input
-                    type="range"
-                    min={12} max={48}
-                    value={project.layout.topRegion.fontSize}
-                    onChange={e => dispatch({ type: 'SET_TOP_REGION', config: { fontSize: Number(e.target.value) } })}
-                    onMouseUp={() => dispatch({ type: 'COMMIT' })}
-                  />
-                  <label>
-                    Alignment
-                    <div className="align-btns">
-                      {(['left', 'center', 'right'] as const).map(a => (
-                        <button
-                          key={a}
-                          className={project.layout.topRegion.alignment === a ? 'active' : ''}
-                          onClick={() => {
-                            dispatch({ type: 'COMMIT' });
-                            dispatch({ type: 'SET_TOP_REGION', config: { alignment: a } });
-                          }}
-                        >
-                          {a[0].toUpperCase() + a.slice(1)}
-                        </button>
-                      ))}
-                    </div>
-                  </label>
-                  <label className="range-label">
-                    Padding <span>{project.layout.topRegion.padding}px</span>
-                  </label>
-                  <input
-                    type="range"
-                    min={0} max={40}
-                    value={project.layout.topRegion.padding}
-                    onChange={e => dispatch({ type: 'SET_TOP_REGION', config: { padding: Number(e.target.value) } })}
-                    onMouseUp={() => dispatch({ type: 'COMMIT' })}
-                  />
                 </>
               )}
             </div>
 
-            {/* ── Main Region ── */}
+            {/* Main Video Region */}
             <div className="layout-section">
               <div className="layout-section-head">
-                <b>Main Video</b>
-                <ChevronDown size={13} />
+                <b>Main Video Framing</b>
               </div>
               <label>
-                Fit mode
+                Fit Mode
                 <select
                   value={project.layout.mainRegion.fitMode}
                   onChange={e => {
                     dispatch({ type: 'COMMIT' });
-                    dispatch({ type: 'SET_MAIN_REGION', config: { fitMode: e.target.value as 'fit' | 'fill' | 'blur-fill' } });
+                    dispatch({ type: 'SET_MAIN_REGION', config: { fitMode: e.target.value as any } });
                   }}
                 >
-                  <option value="fill">Fill (crop)</option>
-                  <option value="fit">Fit (letterbox)</option>
-                  <option value="blur-fill">Blur fill</option>
+                  <option value="fill">Fill (Cropped to canvas)</option>
+                  <option value="fit">Fit (Letterboxed in canvas)</option>
+                  <option value="blur-fill">Blur Fill (Aesthetic mirror backdrop)</option>
                 </select>
               </label>
               <label className="range-label">
-                Corner radius <span>{project.layout.mainRegion.cornerRadius}px</span>
+                Corner Radius <span>{project.layout.mainRegion.cornerRadius}px</span>
               </label>
               <input
                 type="range"
@@ -403,7 +650,7 @@ export default function Sidebar() {
                 onMouseUp={() => dispatch({ type: 'COMMIT' })}
               />
               <label className="range-label">
-                Padding <span>{project.layout.mainRegion.padding}px</span>
+                Canvas Padding <span>{project.layout.mainRegion.padding}px</span>
               </label>
               <input
                 type="range"
@@ -412,39 +659,9 @@ export default function Sidebar() {
                 onChange={e => dispatch({ type: 'SET_MAIN_REGION', config: { padding: Number(e.target.value) } })}
                 onMouseUp={() => dispatch({ type: 'COMMIT' })}
               />
-              <label className="check-label">
-                <input
-                  type="checkbox"
-                  checked={project.layout.mainRegion.showRankBadge}
-                  onChange={e => {
-                    dispatch({ type: 'COMMIT' });
-                    dispatch({ type: 'SET_MAIN_REGION', config: { showRankBadge: e.target.checked } });
-                  }}
-                />
-                Show rank badge
-              </label>
-              {project.layout.mainRegion.showRankBadge && (
-                <label>
-                  Badge position
-                  <select
-                    value={project.layout.mainRegion.rankBadgePosition}
-                    onChange={e => {
-                      dispatch({ type: 'COMMIT' });
-                      dispatch({ type: 'SET_MAIN_REGION', config: {
-                        rankBadgePosition: e.target.value as 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
-                      } });
-                    }}
-                  >
-                    <option value="top-left">Top Left</option>
-                    <option value="top-right">Top Right</option>
-                    <option value="bottom-left">Bottom Left</option>
-                    <option value="bottom-right">Bottom Right</option>
-                  </select>
-                </label>
-              )}
             </div>
 
-            {/* ── Bottom Region ── */}
+            {/* Bottom Region */}
             <div className="layout-section">
               <div className="layout-section-head">
                 <label className="toggle-row">
@@ -458,7 +675,6 @@ export default function Sidebar() {
                   />
                   <b>Bottom Region</b>
                 </label>
-                <ChevronDown size={13} />
               </div>
               {project.layout.bottomRegion.enabled && (
                 <>
@@ -467,252 +683,265 @@ export default function Sidebar() {
                   </label>
                   <input
                     type="range"
-                    min={5} max={35}
+                    min={5} max={30}
                     value={project.layout.bottomRegion.height}
                     onChange={e => dispatch({ type: 'SET_BOTTOM_REGION', config: { height: Number(e.target.value) } })}
                     onMouseUp={() => dispatch({ type: 'COMMIT' })}
                   />
                   <label>
-                    Background
-                    <div className="color-field">
-                      <input
-                        type="color"
-                        value={project.layout.bottomRegion.backgroundColor}
-                        onChange={e => dispatch({ type: 'SET_BOTTOM_REGION', config: { backgroundColor: e.target.value } })}
-                        onBlur={() => dispatch({ type: 'COMMIT' })}
-                      />
-                      <input
-                        type="text"
-                        value={project.layout.bottomRegion.backgroundColor}
-                        onChange={e => dispatch({ type: 'SET_BOTTOM_REGION', config: { backgroundColor: e.target.value } })}
-                        onBlur={() => dispatch({ type: 'COMMIT' })}
-                      />
-                    </div>
+                    Background color
+                    <input
+                      type="color"
+                      value={project.layout.bottomRegion.backgroundColor}
+                      onChange={e => dispatch({ type: 'SET_BOTTOM_REGION', config: { backgroundColor: e.target.value } })}
+                      onBlur={() => dispatch({ type: 'COMMIT' })}
+                    />
                   </label>
-                  <label>
-                    Font color
-                    <div className="color-field">
-                      <input
-                        type="color"
-                        value={project.layout.bottomRegion.fontColor}
-                        onChange={e => dispatch({ type: 'SET_BOTTOM_REGION', config: { fontColor: e.target.value } })}
-                        onBlur={() => dispatch({ type: 'COMMIT' })}
-                      />
-                      <input
-                        type="text"
-                        value={project.layout.bottomRegion.fontColor}
-                        onChange={e => dispatch({ type: 'SET_BOTTOM_REGION', config: { fontColor: e.target.value } })}
-                        onBlur={() => dispatch({ type: 'COMMIT' })}
-                      />
-                    </div>
-                  </label>
-                  <label className="range-label">
-                    Font size <span>{project.layout.bottomRegion.fontSize}px</span>
-                  </label>
-                  <input
-                    type="range"
-                    min={10} max={36}
-                    value={project.layout.bottomRegion.fontSize}
-                    onChange={e => dispatch({ type: 'SET_BOTTOM_REGION', config: { fontSize: Number(e.target.value) } })}
-                    onMouseUp={() => dispatch({ type: 'COMMIT' })}
-                  />
-                  <label>
-                    Alignment
-                    <div className="align-btns">
-                      {(['left', 'center', 'right'] as const).map(a => (
-                        <button
-                          key={a}
-                          className={project.layout.bottomRegion.alignment === a ? 'active' : ''}
-                          onClick={() => {
-                            dispatch({ type: 'COMMIT' });
-                            dispatch({ type: 'SET_BOTTOM_REGION', config: { alignment: a } });
-                          }}
-                        >
-                          {a[0].toUpperCase() + a.slice(1)}
-                        </button>
-                      ))}
-                    </div>
-                  </label>
-                  <label className="range-label">
-                    Padding <span>{project.layout.bottomRegion.padding}px</span>
-                  </label>
-                  <input
-                    type="range"
-                    min={0} max={40}
-                    value={project.layout.bottomRegion.padding}
-                    onChange={e => dispatch({ type: 'SET_BOTTOM_REGION', config: { padding: Number(e.target.value) } })}
-                    onMouseUp={() => dispatch({ type: 'COMMIT' })}
-                  />
                 </>
               )}
             </div>
-
-            {/* ── Canvas / Spacing ── */}
-            <div className="layout-section">
-              <div className="layout-section-head">
-                <b>Canvas</b>
-                <ChevronDown size={13} />
-              </div>
-              <label>
-                Background color
-                <div className="color-field">
-                  <input
-                    type="color"
-                    value={project.layout.canvasBackground}
-                    onChange={e => dispatch({ type: 'SET_LAYOUT', layout: { canvasBackground: e.target.value } })}
-                    onBlur={() => dispatch({ type: 'COMMIT' })}
-                  />
-                  <input
-                    type="text"
-                    value={project.layout.canvasBackground}
-                    onChange={e => dispatch({ type: 'SET_LAYOUT', layout: { canvasBackground: e.target.value } })}
-                    onBlur={() => dispatch({ type: 'COMMIT' })}
-                  />
-                </div>
-              </label>
-              <label className="range-label">
-                Region spacing <span>{project.layout.spacing}px</span>
-              </label>
-              <input
-                type="range"
-                min={0} max={20}
-                value={project.layout.spacing}
-                onChange={e => dispatch({ type: 'SET_LAYOUT', layout: { spacing: Number(e.target.value) } })}
-                onMouseUp={() => dispatch({ type: 'COMMIT' })}
-              />
-            </div>
-
-            {/* ── Actions ── */}
-            <div className="layout-actions">
-              <button
-                className="secondary"
-                onClick={() => {
-                  dispatch({ type: 'COMMIT' });
-                  dispatch({ type: 'SET_LAYOUT', layout: {
-                    canvasBackground: '#000000',
-                    spacing: 0,
-                    topRegion: { ...project.layout.topRegion, enabled: true, height: 12, backgroundColor: '#000000' } as any,
-                    mainRegion: { ...project.layout.mainRegion, fitMode: 'fill', cornerRadius: 0, padding: 0 } as any,
-                    bottomRegion: { ...project.layout.bottomRegion, enabled: true, height: 12, backgroundColor: '#000000' } as any,
-                  } });
-                  dispatch({ type: 'SET_NOTICE', message: 'Layout reset to default' });
-                }}
-              >
-                Reset to default
-              </button>
-            </div>
           </div>
+        )}
 
-        /* ── Audio panel ── */
-        ) : tool === 'Audio' ? (
+        {/* ══════════════════════════════════════════════════
+            AUDIO LIBRARY PANEL
+            ══════════════════════════════════════════════════ */}
+        {tool === 'Audio' && (
           <div className="scroll">
             <div className="section-head">
               <div>
-                <b>Audio library</b>
-                <small>Music and sound effects</small>
+                <b>Audio Library</b>
+                <small>Royalty-free background music and sound tracks</small>
               </div>
             </div>
             <button className="import" onClick={() => fileRef.current?.click()}>
-              <Upload size={15} />Import audio
+              <Upload size={15} /> Import Audio File
             </button>
             <div className="asset-grid">
-              {audio.map(a => (
-                <button
-                  key={a.id}
-                  className="asset"
-                  onClick={() => {
-                    dispatch({ type: 'UPDATE_PROJECT', payload: { musicAssetId: a.id } });
-                    dispatch({ type: 'SET_NOTICE', message: `${a.name} selected as background music` });
-                  }}
-                >
-                  <div className="asset-thumb wave"><AudioLines size={30} /></div>
-                  <span>{a.name}</span>
-                  <small>{fmtBytes(a.size)}</small>
-                </button>
-              ))}
-            </div>
-            <p className="hint">Background music is mixed during export. Control volume in the inspector Audio tab.</p>
-          </div>
+              {audio.map(a => {
+                const isSelected = project.musicAssetId === a.id;
+                const isAuditioning = previewingAssetId === a.id;
 
-        /* ── Media panel (default) ── */
-        ) : (
+                return (
+                  <div
+                    key={a.id}
+                    className={`asset ${isSelected ? 'selected' : ''}`}
+                    style={{
+                      border: isSelected ? '1px solid #20c8f2' : undefined,
+                      position: 'relative',
+                    }}
+                    onClick={() => {
+                      dispatch({ type: 'COMMIT' });
+                      dispatch({ type: 'UPDATE_PROJECT', payload: { musicAssetId: a.id } });
+                      dispatch({ type: 'SET_NOTICE', message: `${a.name} chosen as background music` });
+                    }}
+                  >
+                    <div className="asset-thumb wave">
+                      <AudioLines size={28} />
+                      <button
+                        className="audition-btn"
+                        style={{
+                          position: 'absolute',
+                          bottom: 6,
+                          right: 6,
+                          background: 'rgba(0,0,0,0.7)',
+                          border: 'none',
+                          borderRadius: '50%',
+                          width: 24,
+                          height: 24,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#ffffff',
+                          cursor: 'pointer',
+                        }}
+                        onClick={e => handleAuditionAudio(a, e)}
+                        title={isAuditioning ? 'Pause preview' : 'Audition track'}
+                      >
+                        {isAuditioning ? <Pause size={12} /> : <Play size={12} fill="currentColor" />}
+                      </button>
+                    </div>
+                    <span>{a.name}</span>
+                    <small>{a.duration ? `${fmtTime(a.duration)} · ` : ''}{fmtBytes(a.size)}</small>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ══════════════════════════════════════════════════
+            MEDIA LIBRARY PANEL (Default)
+            ══════════════════════════════════════════════════ */}
+        {tool === 'Media' && (
           <div className="scroll">
             <div className="section-head">
               <div>
-                <b>Media library</b>
-                <small>Import clips to build your ranking.</small>
+                <b>Media Library</b>
+                <small>Drag footage onto timeline or double-click</small>
               </div>
               <button className="small-btn" onClick={() => fileRef.current?.click()}>
-                <Plus size={14} />Import
+                <Plus size={14} /> Import
               </button>
             </div>
+
             <button className="import" onClick={() => fileRef.current?.click()}>
-              <Upload size={15} />Import media <span>Video / Audio</span>
+              <Upload size={15} /> Import Video, Audio, or Image
             </button>
+
+            {/* Filter tabs */}
             <div className="media-filter">
               <div>
                 <Search size={14} />
                 <input
-                  placeholder="Search media"
+                  placeholder="Search media files"
                   value={query}
                   onChange={e => setQuery(e.target.value)}
                 />
               </div>
               <select value={filter} onChange={e => setFilter(e.target.value as any)}>
-                <option value="All">All</option>
-                <option value="video">Video</option>
-                <option value="audio">Audio</option>
+                <option value="All">All ({assets.length})</option>
+                <option value="video">Videos ({videos.length})</option>
+                <option value="audio">Audio ({audio.length})</option>
+                <option value="image">Images ({images.length})</option>
               </select>
-              <button className="icon"><Grid2X2 size={15} /></button>
             </div>
+
+            {/* Asset Grid */}
             <div className="asset-grid">
-              {visibleAssets.map(a => (
-                <button
-                  key={a.id}
-                  className="asset"
-                  onClick={() => {
-                    if (a.type === 'video' && clip) {
-                      dispatch({ type: 'COMMIT' });
-                      dispatch({
-                        type: 'UPDATE_CLIP',
-                        clipId: clip.id,
-                        payload: {
-                          assetId: a.id,
-                          name: a.name,
-                          url: a.url,
-                          sourceStart: 0,
-                          sourceEnd: Math.min(5, clip.duration),
-                          duration: Math.min(5, clip.duration),
-                        },
-                      });
-                      dispatch({ type: 'SET_NOTICE', message: `${a.name} assigned to rank ${clip.rank}` });
-                    } else if (a.type === 'audio') {
-                      dispatch({ type: 'UPDATE_PROJECT', payload: { musicAssetId: a.id } });
-                    }
-                  }}
-                >
-                  <div className={`asset-thumb ${a.type === 'audio' ? 'wave' : ''}`}>
-                    {a.type === 'video' ? <Video size={23} /> : <AudioLines size={25} />}
-                    <small>{a.type.toUpperCase()}</small>
+              {visibleAssets.map(a => {
+                const isAssigned = project.clips.some(c => c.assetId === a.id);
+
+                return (
+                  <div
+                    key={a.id}
+                    className="asset"
+                    draggable={true}
+                    onDragStart={e => {
+                      e.dataTransfer.setData('application/json', JSON.stringify(a));
+                      e.dataTransfer.effectAllowed = 'copyMove';
+                    }}
+                    onDoubleClick={() => {
+                      if (a.type === 'video' || a.type === 'image') {
+                        assignAssetToClip(a);
+                      } else if (a.type === 'audio') {
+                        dispatch({ type: 'UPDATE_PROJECT', payload: { musicAssetId: a.id } });
+                      }
+                    }}
+                    style={{ position: 'relative' }}
+                  >
+                    <div className={`asset-thumb ${a.type === 'audio' ? 'wave' : ''}`}>
+                      {a.thumbnailUrl ? (
+                        <img
+                          src={a.thumbnailUrl}
+                          alt={a.name}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                      ) : a.type === 'video' ? (
+                        <Video size={24} />
+                      ) : a.type === 'audio' ? (
+                        <AudioLines size={24} />
+                      ) : (
+                        <ImageIcon size={24} />
+                      )}
+
+                      {/* Duration badge */}
+                      {a.duration && a.type !== 'image' && (
+                        <span
+                          style={{
+                            position: 'absolute',
+                            bottom: 4,
+                            left: 4,
+                            background: 'rgba(0,0,0,0.8)',
+                            fontSize: 9,
+                            fontWeight: 700,
+                            padding: '1px 4px',
+                            borderRadius: 3,
+                            color: '#ffffff',
+                          }}
+                        >
+                          {fmtTime(a.duration)}
+                        </span>
+                      )}
+
+                      {/* Quick Assign / Add Button */}
+                      <button
+                        style={{
+                          position: 'absolute',
+                          top: 4,
+                          right: 4,
+                          background: 'rgba(0,0,0,0.75)',
+                          border: 'none',
+                          color: '#ffffff',
+                          borderRadius: '50%',
+                          width: 22,
+                          height: 22,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                        }}
+                        title={a.type === 'audio' ? 'Set as background music' : 'Assign to selected rank'}
+                        onClick={e => {
+                          e.stopPropagation();
+                          if (a.type === 'audio') {
+                            dispatch({ type: 'UPDATE_PROJECT', payload: { musicAssetId: a.id } });
+                            dispatch({ type: 'SET_NOTICE', message: `${a.name} set as music` });
+                          } else {
+                            assignAssetToClip(a);
+                          }
+                        }}
+                      >
+                        <Target size={12} />
+                      </button>
+
+                      {/* Delete button */}
+                      <button
+                        style={{
+                          position: 'absolute',
+                          bottom: 4,
+                          right: 4,
+                          background: 'rgba(239, 68, 68, 0.75)',
+                          border: 'none',
+                          color: '#ffffff',
+                          borderRadius: '50%',
+                          width: 20,
+                          height: 20,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                        }}
+                        title="Delete asset"
+                        onClick={e => handleDeleteAsset(a.id, e)}
+                      >
+                        <Trash2 size={10} />
+                      </button>
+                    </div>
+
+                    <span title={a.name}>{a.name}</span>
+                    <small>
+                      {a.width && a.height ? `${a.width}x${a.height} · ` : ''}{fmtBytes(a.size)}
+                    </small>
                   </div>
-                  <span>{a.name}</span>
-                  <small>{fmtBytes(a.size)}</small>
-                </button>
-              ))}
+                );
+              })}
+
               {!visibleAssets.length && (
-                <div className="empty">
-                  <Upload size={24} />
-                  <b>No media imported</b>
-                  <p>Import video or audio files to start editing.</p>
+                <div className="empty" style={{ gridColumn: 'span 2', padding: 24 }}>
+                  <Upload size={28} style={{ opacity: 0.3 }} />
+                  <b>No media files found</b>
+                  <p>Import video clips or audio tracks to begin editing your ranking video.</p>
                   <button className="secondary" onClick={() => fileRef.current?.click()}>
-                    Choose files
+                    Upload Footage
                   </button>
                 </div>
               )}
             </div>
+
             <div className="asset-footer">
               {assets.length} assets
-              <span>{videos.length} videos · {audio.length} audio</span>
+              <span>{videos.length} videos · {audio.length} audio · {images.length} images</span>
             </div>
           </div>
         )}
@@ -723,7 +952,7 @@ export default function Sidebar() {
         type="file"
         multiple
         hidden
-        accept="video/*,audio/*,.mp4,.mov,.mkv,.webm,.mp3,.wav,.m4a"
+        accept="video/*,audio/*,image/*,.mp4,.mov,.mkv,.webm,.mp3,.wav,.m4a,.png,.jpg,.jpeg,.webp"
         onChange={e => upload(e.target.files)}
       />
     </>

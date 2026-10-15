@@ -18,6 +18,20 @@ export const api = {
 
   listProjects: () => request<ProjectSummary[]>(`${API}/projects`),
 
+  listAssets: async (): Promise<Asset[]> => {
+    const list = await request<Asset[]>(`${API}/assets`);
+    return list.map(a => ({
+      ...a,
+      url: a.url.startsWith('http') ? a.url : `${API}${a.url.replace('/api', '')}`,
+      thumbnailUrl: a.thumbnailUrl ? (a.thumbnailUrl.startsWith('http') ? a.thumbnailUrl : `${API}${a.thumbnailUrl.replace('/api', '')}`) : null,
+    }));
+  },
+
+  deleteAsset: (id: string) =>
+    request<{ deleted: boolean }>(`${API}/assets/${id}`, { method: 'DELETE' }),
+
+  getThumbnailUrl: (id: string) => `${API}/assets/${id}/thumbnail`,
+
   getProject: (id: string) => request<Project>(`${API}/projects/${id}`),
 
   saveProject: (project: Project) =>
@@ -36,7 +50,11 @@ export const api = {
     const res = await fetch(`${API}/assets`, { method: 'POST', body: fd });
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || `Failed to upload ${file.name}`);
-    return { ...data, url: API + data.url };
+    return {
+      ...data,
+      url: data.url.startsWith('http') ? data.url : `${API}${data.url.replace('/api', '')}`,
+      thumbnailUrl: data.thumbnailUrl ? (data.thumbnailUrl.startsWith('http') ? data.thumbnailUrl : `${API}${data.thumbnailUrl.replace('/api', '')}`) : null,
+    };
   },
 
   getAssetUrl: (id: string) => `${API}/assets/${id}`,

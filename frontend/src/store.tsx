@@ -30,6 +30,12 @@ export interface AppState {
   projectsOpen: boolean;
   wizardOpen: boolean;
   wizardStep: number;
+
+  trackVideoHidden: boolean;
+  trackOverlaysHidden: boolean;
+  trackAudioMuted: boolean;
+  previewZoom: 'fit' | '50%' | '75%' | '100%';
+  previewMuted: boolean;
 }
 
 const HISTORY_LIMIT = 50;
@@ -56,6 +62,11 @@ function initialState(): AppState {
     projectsOpen: false,
     wizardOpen: true,
     wizardStep: 0,
+    trackVideoHidden: false,
+    trackOverlaysHidden: false,
+    trackAudioMuted: false,
+    previewZoom: 'fit',
+    previewMuted: false,
   };
 }
 
@@ -83,9 +94,13 @@ export type Action =
   // Data
   | { type: 'SET_ASSETS'; assets: Asset[] }
   | { type: 'ADD_ASSETS'; assets: Asset[] }
+  | { type: 'REMOVE_ASSET'; assetId: string }
   | { type: 'SET_TEMPLATES'; templates: Template[] }
   | { type: 'SET_PROJECTS'; projects: ProjectSummary[] }
   | { type: 'SET_HEALTH'; health: HealthStatus }
+  // Ranking & Clips
+  | { type: 'REORDER_CLIPS'; clipIds: string[] }
+  | { type: 'RENUMBER_RANKS'; mode: 'countdown' | 'standard' }
   // UI
   | { type: 'SET_TOOL'; tool: ToolName }
   | { type: 'SET_INSPECTOR_TAB'; tab: InspectorTab }
@@ -98,7 +113,12 @@ export type Action =
   | { type: 'SET_EXPORT_OPEN'; open: boolean }
   | { type: 'SET_PROJECTS_OPEN'; open: boolean }
   | { type: 'SET_WIZARD_OPEN'; open: boolean }
-  | { type: 'SET_WIZARD_STEP'; step: number };
+  | { type: 'SET_WIZARD_STEP'; step: number }
+  | { type: 'TOGGLE_TRACK_VIDEO_HIDDEN' }
+  | { type: 'TOGGLE_TRACK_OVERLAYS_HIDDEN' }
+  | { type: 'TOGGLE_TRACK_AUDIO_MUTED' }
+  | { type: 'SET_PREVIEW_ZOOM'; zoom: 'fit' | '50%' | '75%' | '100%' }
+  | { type: 'TOGGLE_PREVIEW_MUTED' };
 
 /* ── Reducer ─────────────────────────────────────────── */
 function reducer(state: AppState, action: Action): AppState {
@@ -301,9 +321,48 @@ function reducer(state: AppState, action: Action): AppState {
     // ── Data ──
     case 'SET_ASSETS': return { ...state, assets: action.assets };
     case 'ADD_ASSETS': return { ...state, assets: [...state.assets, ...action.assets] };
+    case 'REMOVE_ASSET':
+      return {
+        ...state,
+        assets: state.assets.filter(a => a.id !== action.assetId),
+        project: {
+          ...state.project,
+          musicAssetId: state.project.musicAssetId === action.assetId ? null : state.project.musicAssetId,
+          clips: state.project.clips.map(c => c.assetId === action.assetId ? { ...c, assetId: null, url: undefined } : c),
+        },
+      };
     case 'SET_TEMPLATES': return { ...state, templates: action.templates };
     case 'SET_PROJECTS': return { ...state, projects: action.projects };
     case 'SET_HEALTH': return { ...state, health: action.health };
+
+    // ── Ranking & Clips ──
+    case 'REORDER_CLIPS': {
+      const map = new Map(state.project.clips.map(c => [c.id, c]));
+      const ordered = action.clipIds.map(id => map.get(id)).filter(Boolean) as Clip[];
+      return {
+        ...state,
+        project: {
+          ...state.project,
+          clips: ordered.map((c, i) => ({ ...c, rank: ordered.length - i })),
+        },
+        saved: false,
+      };
+    }
+
+    case 'RENUMBER_RANKS': {
+      const count = state.project.clips.length;
+      return {
+        ...state,
+        project: {
+          ...state.project,
+          clips: state.project.clips.map((c, i) => ({
+            ...c,
+            rank: action.mode === 'countdown' ? count - i : i + 1,
+          })),
+        },
+        saved: false,
+      };
+    }
 
     // ── UI ──
     case 'SET_TOOL': return { ...state, tool: action.tool };
@@ -318,6 +377,11 @@ function reducer(state: AppState, action: Action): AppState {
     case 'SET_PROJECTS_OPEN': return { ...state, projectsOpen: action.open };
     case 'SET_WIZARD_OPEN': return { ...state, wizardOpen: action.open };
     case 'SET_WIZARD_STEP': return { ...state, wizardStep: action.step };
+    case 'TOGGLE_TRACK_VIDEO_HIDDEN': return { ...state, trackVideoHidden: !state.trackVideoHidden };
+    case 'TOGGLE_TRACK_OVERLAYS_HIDDEN': return { ...state, trackOverlaysHidden: !state.trackOverlaysHidden };
+    case 'TOGGLE_TRACK_AUDIO_MUTED': return { ...state, trackAudioMuted: !state.trackAudioMuted };
+    case 'SET_PREVIEW_ZOOM': return { ...state, previewZoom: action.zoom };
+    case 'TOGGLE_PREVIEW_MUTED': return { ...state, previewMuted: !state.previewMuted };
 
     default:
       return state;
