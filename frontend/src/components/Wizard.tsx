@@ -1,207 +1,309 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Sparkles, X, ChevronRight, ChevronLeft, Check, Layers,
-  LayoutTemplate, Film, Wand2, Plus, Trash2, ArrowRight
+  LayoutTemplate, Film, Wand2, Plus, Trash2, ArrowUp, ArrowDown,
+  Eye, ExternalLink, Link2, Download, Flame, ThumbsUp, Shuffle, Play
 } from 'lucide-react';
 import { useStore } from '../store';
 import { api } from '../api';
-import type { Template } from '../types';
-
-interface RankDraftItem {
-  rank: number;
-  label: string;
-  duration: number;
-  description: string;
-  comment?: string;
-  emoji?: string;
-  rankColor?: string;
-}
+import type { Template, ViralCandidate, TitleWord } from '../types';
 
 const INSPIRATION_CHIPS = [
-  'Ranking Funniest Trampoline Moments',
   'Ranking Best Shark Moments',
+  'Ranking Best Cheetah Moments',
+  'Craziest Roller-Skating Fails',
+  'Top 10 Funniest Animal Moments',
   'Ranking Funniest WaterSlide Fail Moments',
   'Top 5 Unreal Cat Moments',
+  'Ranking Funniest Trampoline Moments',
   'Top 5 Impossible Gym Fails',
-  'Top 5 Craziest Skate Tricks',
 ];
+
+const COLOR_PALETTE = [
+  '#ffffff', // White
+  '#facc15', // Gold / Yellow
+  '#38bdf8', // Sky Blue / Cyan
+  '#ef4444', // Red
+  '#fb923c', // Orange
+  '#4ade80', // Lime
+  '#c084fc', // Purple
+  '#f43f5e', // Rose
+];
+
+function parseTitleWords(title: string): TitleWord[] {
+  const words = (title || 'Top 5 Moments').trim().split(/\s+/);
+  return words.map(w => {
+    const clean = w.toLowerCase().replace(/[^a-z0-9]/g, '');
+    let color = '#ffffff';
+    if (['funniest', 'best', 'craziest', 'unreal', 'greatest', 'wildest', 'top'].includes(clean)) {
+      color = '#facc15';
+    } else if (['shark', 'cheetah', 'animal', 'skate', 'roller', 'trampoline', 'waterslide', 'sports', 'pool', 'water'].includes(clean)) {
+      color = '#38bdf8';
+    } else if (['fail', 'fails', 'disaster', 'crash', 'deadly', 'drop', 'danger'].includes(clean)) {
+      color = '#ef4444';
+    } else if (['gaming', 'clutch', 'legend'].includes(clean)) {
+      color = '#c084fc';
+    } else if (['bruh', 'meme', 'comedy', 'lol', 'humor'].includes(clean)) {
+      color = '#4ade80';
+    }
+    return { text: w, color };
+  });
+}
 
 export default function Wizard() {
   const { state, dispatch } = useStore();
   const { wizardOpen, wizardStep, templates, project } = state;
 
-  const [topic, setTopic] = useState('Ranking Funniest Trampoline Moments');
+  const [topic, setTopic] = useState('Ranking Best Shark Moments');
   const [platform, setPlatform] = useState('YouTube Shorts');
   const [aspectRatio, setAspectRatio] = useState('9:16');
-  const [itemCount, setItemCount] = useState(6);
-  const [hookText, setHookText] = useState('WAIT FOR NUMBER ONE 💀');
-  const [selectedTemplateId, setSelectedTemplateId] = useState('trampoline');
+  const [itemCount, setItemCount] = useState(5);
+  const [hookText, setHookText] = useState('WAIT FOR NUMBER ONE 🦈');
+  const [selectedTemplateId, setSelectedTemplateId] = useState('shark');
   const [selectedLayoutPreset, setSelectedLayoutPreset] = useState('Full Black');
-  const [loadingAi, setLoadingAi] = useState(false);
+  const [downloadClips, setDownloadClips] = useState(true);
+  const [creditsText, setCreditsText] = useState('Original credits to: @happypawsdaily6 @storieswise @melissalohhi');
+  const [titleWords, setTitleWords] = useState<TitleWord[]>([]);
 
-  const [items, setItems] = useState<RankDraftItem[]>([
-    { rank: 1, label: 'Super Trampoline Record', duration: 4.0, description: 'Roof height launch', comment: '', emoji: '🔥', rankColor: '#facc15' },
-    { rank: 2, label: 'Wall Run Flip', duration: 3.8, description: 'Backwards wall kick', comment: '', emoji: '', rankColor: '#38bdf8' },
-    { rank: 3, label: 'Roof Trampoline Drop', duration: 3.5, description: 'Direct jump from roof', comment: '', emoji: '', rankColor: '#ef4444' },
-    { rank: 4, label: 'Synchronized Bounce', duration: 3.5, description: 'Simultaneous bounce', comment: '', emoji: '', rankColor: '#ffffff' },
-    { rank: 5, label: 'Triple Flip Fail', duration: 3.5, description: 'Dizzying rotation', comment: '', emoji: '', rankColor: '#ffffff' },
-    { rank: 6, label: 'Direct Hit Outer Spring', duration: 4.2, description: 'Direct hit on outer frame', comment: 'Direct hit', emoji: '💀', rankColor: '#ffffff' },
-  ]);
+  // Discovery State
+  const [loadingDiscovery, setLoadingDiscovery] = useState(false);
+  const [discoveryStepText, setDiscoveryStepText] = useState('');
+  const [candidates, setCandidates] = useState<ViralCandidate[]>([]);
+
+  // Custom URL import
+  const [customUrl, setCustomUrl] = useState('');
+  const [importingUrl, setImportingUrl] = useState(false);
+
+  // Video preview modal
+  const [previewCandidate, setPreviewCandidate] = useState<ViralCandidate | null>(null);
+
+  // Sync title words when topic changes
+  useEffect(() => {
+    setTitleWords(parseTitleWords(topic));
+  }, [topic]);
 
   if (!wizardOpen) return null;
 
-  const handleGenerateAi = async () => {
-    setLoadingAi(true);
+  const handleDiscoverViralVideos = async () => {
+    setLoadingDiscovery(true);
+    setDiscoveryStepText(`Searching YouTube Shorts & social media for "${topic}"…`);
+
+    const t1 = setTimeout(() => {
+      setDiscoveryStepText('Analyzing view counts, viral velocity & like ratios…');
+    }, 1100);
+
+    const t2 = setTimeout(() => {
+      setDiscoveryStepText('Ranking clips into high-impact countdown order…');
+    }, 2200);
+
     try {
-      const res = await fetch(`${api.baseUrl}/ai/generate-ranking`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          topic,
-          platform,
-          itemCount,
-        }),
+      const res = await api.discoverVideos({
+        topic,
+        platform,
+        itemCount,
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        if (data.title) setTopic(data.title);
-        if (data.hookText) setHookText(data.hookText);
-        if (Array.isArray(data.items)) {
-          setItems(
-            data.items.map((it: any, i: number) => ({
-              rank: it.rank ?? (data.items.length - i),
-              label: it.label || `Rank ${data.items.length - i}`,
-              duration: it.duration || 3.5,
-              description: it.description || '',
-              comment: it.comment || '',
-              emoji: it.emoji || '',
-              rankColor: it.rankColor || (it.rank === 1 ? '#facc15' : it.rank === 2 ? '#38bdf8' : it.rank === 3 ? '#ef4444' : '#ffffff'),
-            }))
-          );
+      clearTimeout(t1);
+      clearTimeout(t2);
+
+      if (res && res.candidates && res.candidates.length > 0) {
+        setCandidates(res.candidates);
+        if (res.hookText) setHookText(res.hookText);
+        if (res.templateId) setSelectedTemplateId(res.templateId);
+
+        // Gather credits
+        const credits = res.candidates
+          .map(c => c.originalCredits || c.creator)
+          .filter(Boolean);
+        if (credits.length) {
+          setCreditsText(`Original credits to: ${Array.from(new Set(credits)).slice(0, 5).join(' ')}`);
         }
-        if (data.templateId) setSelectedTemplateId(data.templateId);
-        dispatch({ type: 'SET_NOTICE', message: 'Viral AI ranking generated!' });
+
+        dispatch({ type: 'SET_NOTICE', message: `Found ${res.candidates.length} viral video candidates!` });
         dispatch({ type: 'SET_WIZARD_STEP', step: 1 });
       } else {
-        fallbackGenerate();
+        fallbackCandidates();
       }
     } catch {
-      fallbackGenerate();
+      clearTimeout(t1);
+      clearTimeout(t2);
+      fallbackCandidates();
     } finally {
-      setLoadingAi(false);
+      setLoadingDiscovery(false);
     }
   };
 
-  const fallbackGenerate = () => {
-    const title = topic.trim() || 'Ranking Funniest Moments';
-    const cleanTopic = title.replace(/^top\s*\d+\s*/i, '').replace(/^ranking\s*/i, '');
-    setHookText(`WAIT FOR NUMBER ONE 💀`);
-    const newItems: RankDraftItem[] = [];
+  const fallbackCandidates = () => {
+    const clean = topic.replace(/top\s*\d+\s*/i, '').replace(/ranking\s*/i, '').trim();
+    const fallbackList: ViralCandidate[] = [];
     for (let i = 1; i <= itemCount; i++) {
-      const isLast = i === itemCount;
-      newItems.push({
-        rank: i,
-        label: i === 1 ? `The Greatest ${cleanTopic}` : `${cleanTopic} #${i}`,
-        duration: 3.5 + (itemCount - i) * 0.2,
-        description: `Highlight ranked at #${i}`,
-        comment: isLast ? 'Direct hit' : '',
-        emoji: isLast ? '💀' : (i === 1 ? '🔥' : ''),
-        rankColor: i === 1 ? '#facc15' : i === 2 ? '#38bdf8' : i === 3 ? '#ef4444' : '#ffffff',
+      const isTop = i === 1;
+      const rank = i;
+      fallbackList.push({
+        id: `cand-${rank}-${Date.now()}`,
+        rank: rank,
+        title: isTop ? `The Legendary ${clean}` : `${clean} #${rank}`,
+        description: `Highlight ranked at position #${rank}`,
+        comment: isTop ? 'Apex Launch' : (rank === itemCount ? 'Direct hit' : ''),
+        emoji: isTop ? '🔥' : (rank === itemCount ? '💀' : ''),
+        rankColor: rank === 1 ? '#facc15' : (rank === 2 ? '#38bdf8' : (rank === 3 ? '#ef4444' : '#ffffff')),
+        duration: 4.0,
+        views: 25000000 + (itemCount - rank + 1) * 15000000,
+        viewsFormatted: `${25 + (itemCount - rank + 1) * 15}M`,
+        likes: 1800000 + (itemCount - rank + 1) * 900000,
+        likesFormatted: `${(1.8 + (itemCount - rank + 1) * 0.9).toFixed(1)}M`,
+        creator: '@viralranks',
+        originalCredits: '@viralranks',
+        viralScore: 90 + (itemCount - rank),
+        license: 'Attribution / Fair Use',
       });
     }
-    setItems(newItems);
-    dispatch({ type: 'SET_NOTICE', message: 'AI generated ranking outline!' });
+    setCandidates(fallbackList);
+    dispatch({ type: 'SET_NOTICE', message: 'Generated viral ranking candidate outline!' });
     dispatch({ type: 'SET_WIZARD_STEP', step: 1 });
   };
 
-  const finishWizard = () => {
-    dispatch({ type: 'COMMIT' });
-    const chosenTemplate = templates.find(t => t.id === selectedTemplateId) || templates[0];
-    const accent = chosenTemplate?.accent || '#facc15';
-    const tplLayout = chosenTemplate?.layout || {};
-
-    // Pair available video assets with ranking entries
-    const videoAssets = state.assets.filter(a => a.type === 'video');
-    const audioAssets = state.assets.filter(a => a.type === 'audio');
-
-    // Build clips from items
-    const clips = items.map((it, idx) => {
-      const assignedAsset = videoAssets[idx % Math.max(1, videoAssets.length)] || null;
-      const rankColor = it.rankColor || (it.rank === 1 ? '#facc15' : it.rank === 2 ? '#38bdf8' : it.rank === 3 ? '#ef4444' : '#ffffff');
-      return {
-        id: crypto.randomUUID(),
-        assetId: assignedAsset ? assignedAsset.id : null,
-        name: assignedAsset ? assignedAsset.name : `${it.label}.mp4`,
-        url: assignedAsset ? assignedAsset.url : undefined,
-        sourceStart: 0,
-        sourceEnd: it.duration,
-        duration: it.duration,
-        label: it.label,
-        rank: it.rank,
-        color: rankColor,
-        rankColor: rankColor,
-        comment: it.comment || '',
-        emoji: it.emoji || '',
-        description: it.description,
-        speed: 1.0,
-        adjustments: { brightness: 100, contrast: 100, saturation: 100 },
+  const handleImportSingleUrl = async () => {
+    const url = customUrl.trim();
+    if (!url) return;
+    setImportingUrl(true);
+    try {
+      const res = await api.inspectUrl(url);
+      const newRank = candidates.length + 1;
+      const newCand: ViralCandidate = {
+        id: `url-cand-${Date.now()}`,
+        rank: newRank,
+        title: res.title || `Imported Clip #${newRank}`,
+        description: res.description || 'Imported from URL',
+        comment: '',
+        emoji: '🔥',
+        rankColor: '#38bdf8',
+        duration: res.duration ? Math.min(8, Math.max(3, res.duration)) : 4.0,
+        sourceUrl: url,
+        thumbnailUrl: res.thumbnailUrl || res.thumbnail,
+        views: res.views || 1000000,
+        viewsFormatted: res.viewsFormatted || '1M',
+        likes: res.likes || 80000,
+        likesFormatted: res.likesFormatted || '80K',
+        creator: res.creator || '@creator',
+        originalCredits: res.originalCredits || res.creator,
+        viralScore: res.viralScore || 88,
+        license: 'Attribution Required',
       };
-    });
+      setCandidates([...candidates, newCand]);
+      setCustomUrl('');
+      dispatch({ type: 'SET_NOTICE', message: 'Clip imported from URL!' });
+    } catch {
+      // Fallback manual add if URL probe fails
+      const newRank = candidates.length + 1;
+      setCandidates([
+        ...candidates,
+        {
+          id: `url-cand-${Date.now()}`,
+          rank: newRank,
+          title: `Custom Video #${newRank}`,
+          description: 'User provided video clip',
+          comment: '',
+          emoji: '🎬',
+          rankColor: '#38bdf8',
+          duration: 4.0,
+          sourceUrl: url,
+          views: 500000,
+          viewsFormatted: '500K',
+          creator: '@custom',
+          viralScore: 85,
+        },
+      ]);
+      setCustomUrl('');
+      dispatch({ type: 'SET_NOTICE', message: 'Clip added to candidates!' });
+    } finally {
+      setImportingUrl(false);
+    }
+  };
 
-    // Layout preset colors
-    let bgColor = '#000000';
-    if (selectedLayoutPreset === 'Dark Navy') bgColor = '#0a1628';
-    if (selectedLayoutPreset === 'Charcoal') bgColor = '#1a1a2e';
-    if (selectedLayoutPreset === 'Deep Purple') bgColor = '#16082e';
+  const handleReorder = (idx: number, direction: -1 | 1) => {
+    const targetIdx = idx + direction;
+    if (targetIdx < 0 || targetIdx >= candidates.length) return;
+    const copy = [...candidates];
+    const temp = copy[idx];
+    copy[idx] = copy[targetIdx];
+    copy[targetIdx] = temp;
+    // Reassign ranks
+    const reindexed = copy.map((c, i) => ({
+      ...c,
+      rank: i + 1,
+      rankColor: i === 0 ? '#facc15' : (i === 1 ? '#38bdf8' : (i === 2 ? '#ef4444' : '#ffffff')),
+    }));
+    setCandidates(reindexed);
+  };
 
-    const bgMusicId = audioAssets[0]?.id || project.musicAssetId || null;
+  const handleDeleteCandidate = (idx: number) => {
+    const filtered = candidates.filter((_, i) => i !== idx);
+    const reindexed = filtered.map((c, i) => ({
+      ...c,
+      rank: i + 1,
+      rankColor: i === 0 ? '#facc15' : (i === 1 ? '#38bdf8' : (i === 2 ? '#ef4444' : '#ffffff')),
+    }));
+    setCandidates(reindexed);
+  };
 
-    dispatch({
-      type: 'UPDATE_PROJECT',
-      payload: {
-        name: topic,
-        title: topic,
+  const handleCycleWordColor = (wordIdx: number) => {
+    const copy = [...titleWords];
+    const curColor = copy[wordIdx].color;
+    const curIdx = COLOR_PALETTE.indexOf(curColor);
+    const nextColor = COLOR_PALETTE[(curIdx + 1) % COLOR_PALETTE.length];
+    copy[wordIdx].color = nextColor;
+    setTitleWords(copy);
+  };
+
+  const handleFinishAndAssemble = async () => {
+    dispatch({ type: 'SET_BUSY', message: 'Downloading footage & assembling CapCut ranking project…' });
+    try {
+      let bgColor = '#000000';
+      if (selectedLayoutPreset === 'Dark Navy') bgColor = '#0a1628';
+      if (selectedLayoutPreset === 'Charcoal') bgColor = '#1a1a2e';
+      if (selectedLayoutPreset === 'Deep Purple') bgColor = '#16082e';
+
+      const assembled = await api.assembleProject({
+        topic,
         hookText,
+        platform,
         aspectRatio,
         templateId: selectedTemplateId,
-        titleColor: '#ffffff',
-        accentColor: accent,
-        platform,
-        clips,
-        musicAssetId: bgMusicId,
-        layout: {
-          ...project.layout,
-          ...tplLayout,
-          canvasBackground: bgColor,
-          topRegion: {
-            ...project.layout.topRegion,
-            ...(tplLayout.topRegion || {}),
-            backgroundColor: (tplLayout.topRegion?.mode === 'overlay' ? 'transparent' : bgColor),
-            title: topic,
-            subtitle: platform,
-          },
-          rankingList: {
-            ...project.layout.rankingList,
-            ...(tplLayout.rankingList || {}),
-            enabled: true,
-          },
-          watermark: {
-            ...project.layout.watermark,
-            ...(tplLayout.watermark || {}),
-          },
-          bottomRegion: {
-            ...project.layout.bottomRegion,
-            ...(tplLayout.bottomRegion || {}),
-            caption: hookText,
-            creatorHandle: '@RankForgeCreator',
-          },
-        },
-      },
-    });
+        canvasBackground: bgColor,
+        candidates,
+        downloadClips,
+      });
 
-    dispatch({ type: 'SET_WIZARD_OPEN', open: false });
-    dispatch({ type: 'SET_NOTICE', message: 'Project created from wizard with footage paired!' });
+      if (assembled && assembled.clips) {
+        dispatch({ type: 'COMMIT' });
+        dispatch({
+          type: 'UPDATE_PROJECT',
+          payload: {
+            ...assembled,
+            layout: {
+              ...assembled.layout,
+              topRegion: {
+                ...assembled.layout.topRegion,
+                titleWords: titleWords.length ? titleWords : assembled.layout.topRegion.titleWords,
+              },
+              bottomRegion: {
+                ...assembled.layout.bottomRegion,
+                caption: creditsText,
+              },
+            },
+          },
+        });
+        dispatch({ type: 'SET_SELECTED', clipId: assembled.clips[0]?.id || '' });
+        dispatch({ type: 'SET_PLAYHEAD', time: 0 });
+        dispatch({ type: 'SET_WIZARD_OPEN', open: false });
+        dispatch({ type: 'SET_NOTICE', message: 'Viral ranking video assembled into CapCut timeline editor!' });
+      }
+    } catch (e) {
+      dispatch({ type: 'SET_NOTICE', message: e instanceof Error ? e.message : 'Assembly failed' });
+    } finally {
+      dispatch({ type: 'SET_BUSY', message: '' });
+    }
   };
 
   return (
@@ -225,8 +327,8 @@ export default function Wizard() {
         <div className="wizard-steps">
           {[
             { num: 1, label: 'Topic & Idea' },
-            { num: 2, label: 'Rank Entries' },
-            { num: 3, label: 'Sandwich Style' },
+            { num: 2, label: 'Discover & Rank Clips' },
+            { num: 3, label: 'Sandwich Style & 3D Title' },
           ].map(s => (
             <div
               key={s.num}
@@ -248,20 +350,20 @@ export default function Wizard() {
               <div className="ai-prompt-box">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
                   <Wand2 size={16} style={{ color: '#20c8f2' }} />
-                  <b style={{ fontSize: 13, color: '#e7f0fa' }}>What ranking video do you want to create?</b>
+                  <b style={{ fontSize: 13, color: '#e7f0fa' }}>Enter a ranking video topic or idea:</b>
                 </div>
                 <input
                   type="text"
                   value={topic}
                   onChange={e => setTopic(e.target.value)}
-                  placeholder="e.g. Top 5 Most Dangerous Water Slides in the World"
+                  placeholder="e.g. Ranking Best Shark Moments, Craziest Roller-Skating Fails, Top 10 Funniest Animals"
                   style={{
                     width: '100%',
-                    padding: '10px 12px',
+                    padding: '11px 13px',
                     fontSize: 13,
                     background: '#090e15',
                     border: '1px solid #233448',
-                    borderRadius: 7,
+                    borderRadius: 8,
                     color: '#fff',
                     outline: 'none',
                   }}
@@ -277,6 +379,41 @@ export default function Wizard() {
                       {chip}
                     </button>
                   ))}
+                </div>
+              </div>
+
+              {/* Direct URL import option */}
+              <div style={{ background: '#101723', border: '1px solid #1f2f42', borderRadius: 8, padding: '10px 14px', marginBottom: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, fontSize: 11, color: '#9bb0c4' }}>
+                  <Link2 size={13} style={{ color: '#38bdf8' }} /> Or import from a video link (YouTube Shorts, TikTok, Instagram Reels):
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input
+                    type="text"
+                    value={customUrl}
+                    onChange={e => setCustomUrl(e.target.value)}
+                    placeholder="https://youtube.com/shorts/iVaDuaWzgyw"
+                    style={{
+                      flex: 1,
+                      padding: '7px 10px',
+                      fontSize: 11,
+                      background: '#0a1018',
+                      border: '1px solid #243548',
+                      borderRadius: 6,
+                      color: '#fff',
+                      outline: 'none',
+                    }}
+                  />
+                  <button
+                    className="small-btn"
+                    disabled={!customUrl.trim() || importingUrl}
+                    onClick={() => {
+                      setTopic(customUrl.trim());
+                      handleDiscoverViralVideos();
+                    }}
+                  >
+                    {importingUrl ? 'Probing…' : 'Use Video'}
+                  </button>
                 </div>
               </div>
 
@@ -341,7 +478,7 @@ export default function Wizard() {
                     }}
                   >
                     <option value={3}>Top 3</option>
-                    <option value={5}>Top 5</option>
+                    <option value={5}>Top 5 (Recommended)</option>
                     <option value={7}>Top 7</option>
                     <option value={10}>Top 10</option>
                   </select>
@@ -350,119 +487,274 @@ export default function Wizard() {
             </div>
           )}
 
-          {/* STEP 2: RANK ENTRIES */}
+          {/* STEP 2: DISCOVER & RANK VIRAL CLIPS */}
           {wizardStep === 1 && (
             <div>
-              <div style={{ marginBottom: 16 }}>
-                <label style={{ fontSize: 11, color: '#9bb0c4', display: 'block', marginBottom: 5 }}>
-                  Opening Hook Text (shown at 00:00 - 00:01.8 to maximize retention):
-                </label>
-                <input
-                  type="text"
-                  value={hookText}
-                  onChange={e => setHookText(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    fontSize: 12,
-                    background: '#121a26',
-                    border: '1px solid #28394e',
-                    borderRadius: 6,
-                    color: '#facc15',
-                    fontWeight: 700,
-                  }}
-                />
-              </div>
+              {loadingDiscovery ? (
+                <div className="ai-scanner-box">
+                  <div className="scanner-radar">
+                    <div className="scanner-radar-inner">
+                      <Sparkles size={18} />
+                    </div>
+                  </div>
+                  <b style={{ fontSize: 14, color: '#f0f6fc', display: 'block', marginBottom: 6 }}>
+                    AI Viral Video Discovery Engine Active
+                  </b>
+                  <p style={{ fontSize: 12, color: '#38bdf8', margin: 0 }}>
+                    {discoveryStepText}
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                    <div>
+                      <b style={{ fontSize: 13, color: '#ecf3fa', display: 'block' }}>
+                        Curated Viral Clips ({candidates.length})
+                      </b>
+                      <small style={{ fontSize: 10, color: '#7a8e9f' }}>
+                        Preview, reorder rank, customize viral comments & emojis, or replace candidate footage.
+                      </small>
+                    </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                <b style={{ fontSize: 12, color: '#ecf3fa' }}>Ranked Items ({items.length})</b>
-                <button
-                  className="small-btn"
-                  onClick={() => {
-                    const nextRank = items.length + 1;
-                    setItems([
-                      ...items,
-                      { rank: nextRank, label: `New Rank #${nextRank}`, duration: 3.5, description: '' },
-                    ]);
-                  }}
-                >
-                  <Plus size={13} /> Add Item
-                </button>
-              </div>
-
-              {items.map((it, idx) => (
-                <div key={idx} className="rank-item-card">
-                  <span className="rank-item-num">#{it.rank}</span>
-                  <div className="rank-item-fields">
-                    <input
-                      type="text"
-                      value={it.label}
-                      placeholder="Title / Moment name"
-                      onChange={e => {
-                        const copy = [...items];
-                        copy[idx].label = e.target.value;
-                        setItems(copy);
-                      }}
-                    />
                     <div style={{ display: 'flex', gap: 6 }}>
                       <input
                         type="text"
-                        value={it.comment || ''}
-                        placeholder="Viral Tag (e.g. Direct hit, Almost died)"
-                        style={{ flex: 1, fontSize: 11 }}
-                        onChange={e => {
-                          const copy = [...items];
-                          copy[idx].comment = e.target.value;
-                          setItems(copy);
+                        placeholder="Paste custom clip URL…"
+                        value={customUrl}
+                        onChange={e => setCustomUrl(e.target.value)}
+                        style={{
+                          width: 170,
+                          padding: '5px 8px',
+                          fontSize: 10,
+                          background: '#0b111a',
+                          border: '1px solid #203144',
+                          borderRadius: 5,
+                          color: '#fff',
                         }}
                       />
-                      <input
-                        type="text"
-                        value={it.emoji || ''}
-                        placeholder="💀"
-                        style={{ width: 44, textAlign: 'center', fontSize: 13 }}
-                        onChange={e => {
-                          const copy = [...items];
-                          copy[idx].emoji = e.target.value;
-                          setItems(copy);
-                        }}
-                      />
+                      <button
+                        className="small-btn"
+                        disabled={!customUrl.trim() || importingUrl}
+                        onClick={handleImportSingleUrl}
+                      >
+                        <Plus size={11} /> {importingUrl ? 'Adding…' : 'Add Clip'}
+                      </button>
                     </div>
                   </div>
-                  <input
-                    type="number"
-                    step="0.5"
-                    min="1"
-                    max="30"
-                    value={it.duration}
-                    onChange={e => {
-                      const copy = [...items];
-                      copy[idx].duration = parseFloat(e.target.value) || 3;
-                      setItems(copy);
-                    }}
-                    style={{ width: 60, padding: '5px 7px', background: '#0b1119', border: '1px solid #223246', color: '#fff', fontSize: 11, borderRadius: 4 }}
-                    title="Duration in seconds"
-                  />
-                  <button
-                    className="icon"
-                    title="Remove item"
-                    disabled={items.length <= 1}
-                    onClick={() => setItems(items.filter((_, i) => i !== idx))}
-                  >
-                    <Trash2 size={14} />
-                  </button>
+
+                  <div className="candidate-list">
+                    {candidates.map((cand, idx) => (
+                      <div key={cand.id || idx} className="candidate-card">
+                        {/* Rank Badge */}
+                        <div
+                          className="candidate-rank-badge"
+                          style={{
+                            borderColor: cand.rankColor || '#38bdf8',
+                            color: cand.rankColor || '#38bdf8',
+                          }}
+                        >
+                          <span style={{ fontSize: 11, opacity: 0.7 }}>RANK</span>
+                          <span>#{cand.rank}</span>
+                        </div>
+
+                        {/* Thumbnail / Preview trigger */}
+                        <div
+                          className="candidate-thumb-box"
+                          onClick={() => setPreviewCandidate(cand)}
+                          title="Click to preview candidate video"
+                        >
+                          {cand.thumbnailUrl ? (
+                            <img src={cand.thumbnailUrl} alt={cand.title} />
+                          ) : (
+                            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0b121b', color: '#44566c' }}>
+                              <Film size={22} />
+                            </div>
+                          )}
+                          <span className="candidate-thumb-dur">{cand.duration}s</span>
+                          <div className="candidate-thumb-play">
+                            <Play size={18} fill="#fff" color="#fff" />
+                          </div>
+                        </div>
+
+                        {/* Info & Editing */}
+                        <div className="candidate-info">
+                          <div className="candidate-top-row">
+                            <input
+                              className="candidate-title-input"
+                              type="text"
+                              value={cand.title}
+                              placeholder="Moment Highlight Title"
+                              onChange={e => {
+                                const copy = [...candidates];
+                                copy[idx].title = e.target.value;
+                                setCandidates(copy);
+                              }}
+                            />
+
+                            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                              <input
+                                type="text"
+                                value={cand.comment || ''}
+                                placeholder="Viral Tag (e.g. Apex Launch)"
+                                style={{
+                                  width: 120,
+                                  fontSize: 11,
+                                  background: '#090f17',
+                                  border: '1px solid #203144',
+                                  borderRadius: 5,
+                                  padding: '5px 8px',
+                                  color: '#e2edf8',
+                                }}
+                                onChange={e => {
+                                  const copy = [...candidates];
+                                  copy[idx].comment = e.target.value;
+                                  setCandidates(copy);
+                                }}
+                              />
+
+                              <input
+                                type="text"
+                                value={cand.emoji || ''}
+                                placeholder="🦈"
+                                style={{
+                                  width: 38,
+                                  textAlign: 'center',
+                                  fontSize: 13,
+                                  background: '#090f17',
+                                  border: '1px solid #203144',
+                                  borderRadius: 5,
+                                  padding: '5px 4px',
+                                  color: '#fff',
+                                }}
+                                onChange={e => {
+                                  const copy = [...candidates];
+                                  copy[idx].emoji = e.target.value;
+                                  setCandidates(copy);
+                                }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* Metrics row */}
+                          <div className="candidate-metrics">
+                            <span className="metric-pill views">
+                              <Eye size={10} /> {cand.viewsFormatted || '25M'} Views
+                            </span>
+                            <span className="metric-pill likes">
+                              <ThumbsUp size={10} /> {cand.likesFormatted || '1.8M'}
+                            </span>
+                            <span className="metric-pill score">
+                              <Flame size={10} /> {cand.viralScore || 92}% Virality
+                            </span>
+                            <span className="metric-pill creator">
+                              {cand.creator || '@creator'}
+                            </span>
+                          </div>
+
+                          {/* Controls row */}
+                          <div className="candidate-bottom-row">
+                            <label style={{ fontSize: 10, color: '#7a8e9f', display: 'flex', alignItems: 'center', gap: 6 }}>
+                              Duration:
+                              <input
+                                type="range"
+                                min="2.5"
+                                max="7.0"
+                                step="0.5"
+                                value={cand.duration}
+                                onChange={e => {
+                                  const copy = [...candidates];
+                                  copy[idx].duration = parseFloat(e.target.value);
+                                  setCandidates(copy);
+                                }}
+                                style={{ width: 80 }}
+                              />
+                              <b style={{ color: '#fff', fontSize: 10 }}>{cand.duration}s</b>
+                            </label>
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 'auto' }}>
+                              <span style={{ fontSize: 9, color: '#627588' }}>Rank Color:</span>
+                              {['#facc15', '#38bdf8', '#ef4444', '#fb923c', '#ffffff'].map(c => (
+                                <button
+                                  key={c}
+                                  onClick={() => {
+                                    const copy = [...candidates];
+                                    copy[idx].rankColor = c;
+                                    setCandidates(copy);
+                                  }}
+                                  style={{
+                                    width: 12,
+                                    height: 12,
+                                    borderRadius: '50%',
+                                    background: c,
+                                    border: cand.rankColor === c ? '2px solid #fff' : 'none',
+                                    cursor: 'pointer',
+                                    padding: 0,
+                                  }}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Actions (Reorder, Delete) */}
+                        <div className="candidate-actions">
+                          <button
+                            className="icon"
+                            title="Move Up"
+                            disabled={idx === 0}
+                            onClick={() => handleReorder(idx, -1)}
+                          >
+                            <ArrowUp size={13} />
+                          </button>
+                          <button
+                            className="icon"
+                            title="Move Down"
+                            disabled={idx === candidates.length - 1}
+                            onClick={() => handleReorder(idx, 1)}
+                          >
+                            <ArrowDown size={13} />
+                          </button>
+                          <button
+                            className="icon"
+                            title="Reject clip"
+                            onClick={() => handleDeleteCandidate(idx)}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              ))}
+              )}
             </div>
           )}
 
           {/* STEP 3: TEMPLATE & SANDWICH STYLE */}
           {wizardStep === 2 && (
             <div>
-              <b style={{ fontSize: 12, color: '#ecf3fa', display: 'block', marginBottom: 10 }}>
-                Choose Visual Template
+              <b style={{ fontSize: 12, color: '#ecf3fa', display: 'block', marginBottom: 6 }}>
+                3D Multi-Color Title Words (Click any word to change its viral accent color)
               </b>
-              <div className="template-grid" style={{ marginBottom: 20 }}>
+              <div className="title-words-editor">
+                {titleWords.map((tw, widx) => (
+                  <button
+                    key={widx}
+                    className="word-color-chip"
+                    style={{ color: tw.color }}
+                    onClick={() => handleCycleWordColor(widx)}
+                    title="Click to cycle color"
+                  >
+                    <span className="color-dot-indicator" style={{ background: tw.color }} />
+                    {tw.text}
+                  </button>
+                ))}
+              </div>
+
+              <b style={{ fontSize: 12, color: '#ecf3fa', display: 'block', marginBottom: 10 }}>
+                Choose Visual Ranking Template
+              </b>
+              <div className="template-grid" style={{ marginBottom: 18 }}>
                 {templates.map(t => (
                   <div
                     key={t.id}
@@ -489,25 +781,68 @@ export default function Wizard() {
                 ))}
               </div>
 
-              <b style={{ fontSize: 12, color: '#ecf3fa', display: 'block', marginBottom: 8 }}>
-                Sandwich Canvas Theme
-              </b>
-              <div className="layout-presets">
-                {[
-                  ['Full Black', '#000000'],
-                  ['Dark Navy', '#0a1628'],
-                  ['Charcoal', '#1a1a2e'],
-                  ['Deep Purple', '#16082e'],
-                ].map(([name, color]) => (
-                  <button
-                    key={name}
-                    className={`preset-chip ${selectedLayoutPreset === name ? 'active' : ''}`}
-                    onClick={() => setSelectedLayoutPreset(name)}
-                  >
-                    <span className="color-dot" style={{ background: color }} />
-                    {name}
-                  </button>
-                ))}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 16 }}>
+                <div>
+                  <b style={{ fontSize: 11, color: '#9bb0c4', display: 'block', marginBottom: 6 }}>
+                    Opening Retention Hook Text:
+                  </b>
+                  <input
+                    type="text"
+                    value={hookText}
+                    onChange={e => setHookText(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '8px 10px',
+                      fontSize: 11,
+                      background: '#121a26',
+                      border: '1px solid #28394e',
+                      borderRadius: 6,
+                      color: '#facc15',
+                      fontWeight: 700,
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <b style={{ fontSize: 11, color: '#9bb0c4', display: 'block', marginBottom: 6 }}>
+                    Creator Attribution (Bottom Banner):
+                  </b>
+                  <input
+                    type="text"
+                    value={creditsText}
+                    onChange={e => setCreditsText(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '8px 10px',
+                      fontSize: 11,
+                      background: '#121a26',
+                      border: '1px solid #28394e',
+                      borderRadius: 6,
+                      color: '#dbe5ef',
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: '#121a26', borderRadius: 8, border: '1px solid #203144' }}>
+                <b style={{ fontSize: 11, color: '#ecf3fa' }}>Sandwich Canvas Theme:</b>
+                <div className="layout-presets" style={{ margin: 0 }}>
+                  {[
+                    ['Full Black', '#000000'],
+                    ['Dark Navy', '#0a1628'],
+                    ['Charcoal', '#1a1a2e'],
+                    ['Deep Purple', '#16082e'],
+                  ].map(([name, color]) => (
+                    <button
+                      key={name}
+                      className={`preset-chip ${selectedLayoutPreset === name ? 'active' : ''}`}
+                      onClick={() => setSelectedLayoutPreset(name)}
+                    >
+                      <span className="color-dot" style={{ background: color }} />
+                      {name}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           )}
@@ -527,39 +862,86 @@ export default function Wizard() {
               className="secondary"
               onClick={() => dispatch({ type: 'SET_WIZARD_OPEN', open: false })}
             >
-              Skip to Editor
+              Cancel
             </button>
           )}
 
           {wizardStep === 0 && (
             <button
               className="primary"
-              disabled={loadingAi}
-              onClick={handleGenerateAi}
+              disabled={loadingDiscovery || !topic.trim()}
+              onClick={handleDiscoverViralVideos}
             >
-              <Wand2 size={14} /> {loadingAi ? 'Generating Idea…' : 'Generate with AI'}
+              <Wand2 size={14} /> {loadingDiscovery ? 'Discovering Videos…' : 'Discover Viral Videos'}
             </button>
           )}
 
           {wizardStep === 1 && (
             <button
               className="primary"
+              disabled={candidates.length === 0}
               onClick={() => dispatch({ type: 'SET_WIZARD_STEP', step: 2 })}
             >
-              Next: Select Style <ChevronRight size={14} />
+              Approve Clips & Choose Style <ChevronRight size={14} />
             </button>
           )}
 
           {wizardStep === 2 && (
             <button
               className="primary"
-              onClick={finishWizard}
+              onClick={handleFinishAndAssemble}
             >
-              <Check size={14} /> Launch Video Project
+              <Film size={14} /> Assemble Video Project
             </button>
           )}
         </div>
       </div>
+
+      {/* ── Preview Candidate Video Modal ── */}
+      {previewCandidate && (
+        <div
+          className="wizard-overlay"
+          style={{ zIndex: 120, background: 'rgba(0,0,0,0.85)' }}
+          onClick={() => setPreviewCandidate(null)}
+        >
+          <div
+            style={{
+              width: '520px',
+              maxWidth: '90vw',
+              background: '#0e1520',
+              border: '1px solid #26384d',
+              borderRadius: 14,
+              padding: 16,
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <b style={{ fontSize: 13, color: '#fff' }}>{previewCandidate.title}</b>
+              <button className="icon" onClick={() => setPreviewCandidate(null)}>
+                <X size={15} />
+              </button>
+            </div>
+            {previewCandidate.sourceUrl ? (
+              <div style={{ borderRadius: 8, overflow: 'hidden', background: '#000', marginBottom: 12 }}>
+                <iframe
+                  src={previewCandidate.sourceUrl.replace('watch?v=', 'embed/').replace('/shorts/', '/embed/')}
+                  title="Preview"
+                  style={{ width: '100%', height: '360px', border: 'none' }}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+            ) : (
+              <p style={{ color: '#7a8e9f', fontSize: 12 }}>No video stream URL available for preview.</p>
+            )}
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button className="secondary" onClick={() => setPreviewCandidate(null)}>
+                Close Preview
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

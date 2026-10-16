@@ -91,4 +91,32 @@ export const api = {
 
   deleteTemplate: (id: string) =>
     request<{ deleted: boolean }>(`${API}/templates/${id}`, { method: 'DELETE' }),
+
+  discoverVideos: (params: { topic: string; platform?: string; itemCount?: number }) =>
+    request<{
+      topic: string;
+      hookText: string;
+      templateId: string;
+      accentColor: string;
+      platform: string;
+      candidates: any[];
+    }>(`${API}/ai/discover-videos`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+    }),
+
+  inspectUrl: (url: string) =>
+    request<any>(`${API}/ai/inspect-url`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url }),
+    }),
+
+  assembleProject: (payload: any) =>
+    request<Project>(`${API}/ai/assemble-project`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }),
 };

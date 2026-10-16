@@ -356,3 +356,70 @@ def test_export_viral_ranking_with_stack_and_watermark():
     assert dl_resp.status_code == 200
     assert dl_resp.headers['content-type'] == 'video/mp4'
 
+def test_discover_videos_viral_sharks_and_cheetah():
+    # 1. Shark discovery
+    resp_shark = client.post('/api/ai/discover-videos', json={
+        'topic': 'Ranking Best Shark Moments',
+        'platform': 'YouTube Shorts',
+        'itemCount': 5
+    })
+    assert resp_shark.status_code == 200
+    data_shark = resp_shark.json()
+    assert data_shark['templateId'] == 'shark'
+    assert 'WAIT FOR NUMBER ONE' in data_shark['hookText']
+    assert len(data_shark['candidates']) == 5
+    first_cand = data_shark['candidates'][0]
+    assert 'views' in first_cand
+    assert 'viewsFormatted' in first_cand
+    assert 'viralScore' in first_cand
+    assert first_cand['viralScore'] >= 60
+
+    # 2. Cheetah discovery
+    resp_cheetah = client.post('/api/ai/discover-videos', json={
+        'topic': 'Ranking Best Cheetah Moments',
+        'platform': 'YouTube Shorts',
+        'itemCount': 4
+    })
+    assert resp_cheetah.status_code == 200
+    data_cheetah = resp_cheetah.json()
+    assert data_cheetah['templateId'] == 'cheetah'
+    assert len(data_cheetah['candidates']) == 4
+
+    # 3. Skate fails discovery
+    resp_skate = client.post('/api/ai/discover-videos', json={
+        'topic': 'Craziest Roller-Skating Fails',
+        'platform': 'TikTok',
+        'itemCount': 3
+    })
+    assert resp_skate.status_code == 200
+    data_skate = resp_skate.json()
+    assert data_skate['templateId'] == 'skate-fails'
+    assert len(data_skate['candidates']) == 3
+
+def test_assemble_project_endpoint():
+    # Discover candidates
+    resp = client.post('/api/ai/discover-videos', json={
+        'topic': 'Ranking Best Cheetah Moments',
+        'itemCount': 3
+    })
+    assert resp.status_code == 200
+    disc_data = resp.json()
+
+    # Assemble project from candidates
+    assemble_resp = client.post('/api/ai/assemble-project', json={
+        'topic': disc_data['topic'],
+        'hookText': disc_data['hookText'],
+        'platform': 'YouTube Shorts',
+        'templateId': disc_data['templateId'],
+        'canvasBackground': '#000000',
+        'candidates': disc_data['candidates'],
+        'downloadClips': False # Use local fallback in test
+    })
+    assert assemble_resp.status_code == 200
+    proj = assemble_resp.json()
+    assert proj['id'] is not None
+    assert len(proj['clips']) == 3
+    assert proj['layout']['topRegion']['enabled'] is True
+    assert 'titleWords' in proj['layout']['topRegion']
+    assert proj['layout']['rankingList']['enabled'] is True
+

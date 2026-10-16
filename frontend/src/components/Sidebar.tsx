@@ -1226,9 +1226,23 @@ export default function Sidebar() {
               </button>
             </div>
 
-            <button className="import" onClick={() => fileRef.current?.click()}>
-              <Upload size={15} /> Import Video, Audio, or Image
-            </button>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
+              <button className="import" style={{ margin: 0 }} onClick={() => fileRef.current?.click()}>
+                <Upload size={14} /> Import File
+              </button>
+              <button
+                className="import"
+                style={{
+                  margin: 0,
+                  background: 'linear-gradient(135deg, rgba(32, 200, 242, 0.15), rgba(147, 51, 234, 0.15))',
+                  borderColor: 'rgba(32, 200, 242, 0.4)',
+                  color: '#38bdf8',
+                }}
+                onClick={() => dispatch({ type: 'SET_WIZARD_OPEN', open: true })}
+              >
+                <Sparkles size={14} /> AI Discover
+              </button>
+            </div>
 
             {/* Filter tabs */}
             <div className="media-filter">

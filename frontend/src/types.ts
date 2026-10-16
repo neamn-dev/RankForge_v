@@ -45,6 +45,49 @@ export interface TitleWord {
   color: string;
 }
 
+// ─── Viral Candidates (Discovery) ─────────────────────────
+export interface ViralCandidate {
+  id: string;
+  rank: number;
+  title: string;
+  description: string;
+  comment?: string;
+  emoji?: string;
+  rankColor?: string;
+  duration: number;
+  sourceUrl?: string | null;
+  thumbnailUrl?: string | null;
+  views?: number;
+  viewsFormatted?: string;
+  likes?: number;
+  likesFormatted?: string;
+  creator?: string;
+  originalCredits?: string;
+  viralScore?: number;
+  license?: string;
+  localAssetId?: string | null;
+}
+
+export interface DiscoverResponse {
+  topic: string;
+  hookText: string;
+  templateId: string;
+  accentColor: string;
+  platform: string;
+  candidates: ViralCandidate[];
+}
+
+export interface AssembleProjectRequest {
+  topic: string;
+  hookText: string;
+  platform: string;
+  aspectRatio: string;
+  templateId: string;
+  canvasBackground: string;
+  candidates: ViralCandidate[];
+  downloadClips?: boolean;
+}
+
 // ─── Sandwich Layout ─────────────────────────────────────
 export interface TopRegionConfig {
   enabled: boolean;

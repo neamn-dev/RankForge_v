@@ -1,5 +1,5 @@
 import { useStore } from '../store';
-import { Check, ChevronDown, Download, Eye, Pause, Redo2, Save, Undo2, X } from 'lucide-react';
+import { Check, ChevronDown, Download, Eye, Pause, Redo2, Save, Sparkles, Undo2, X } from 'lucide-react';
 
 export default function Topbar() {
   const { state, dispatch } = useStore();
@@ -17,6 +17,19 @@ export default function Topbar() {
         onClick={() => dispatch({ type: 'SET_PROJECTS_OPEN', open: !state.projectsOpen })}
       >
         Project <ChevronDown size={14} />
+      </button>
+      <button
+        className="secondary"
+        style={{
+          background: 'linear-gradient(135deg, rgba(32, 200, 242, 0.15), rgba(147, 51, 234, 0.15))',
+          borderColor: 'rgba(32, 200, 242, 0.45)',
+          color: '#38bdf8',
+          fontWeight: 700,
+        }}
+        onClick={() => dispatch({ type: 'SET_WIZARD_OPEN', open: true })}
+        title="Open AI Viral Ranking Studio"
+      >
+        <Sparkles size={14} style={{ color: '#20c8f2' }} /> AI Studio
       </button>
       <input
         className="project-name"
