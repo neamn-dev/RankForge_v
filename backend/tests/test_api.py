@@ -250,3 +250,109 @@ def test_export_with_real_clip_and_music():
     assert dl_resp.status_code == 200
     assert dl_resp.headers['content-type'] == 'video/mp4'
 
+def test_ai_ranking_viral_trampoline_and_shark():
+    # Trampoline niche
+    res = client.post('/api/ai/generate-ranking', json={'topic': 'Ranking Funniest Trampoline Moments', 'itemCount': 6})
+    assert res.status_code == 200
+    data = res.json()
+    assert data['templateId'] == 'trampoline'
+    assert len(data['items']) == 6
+    # Verify comments and emojis are populated
+    items_with_comment = [it for it in data['items'] if it.get('comment')]
+    assert len(items_with_comment) > 0
+    direct_hit_item = next((it for it in data['items'] if 'Direct hit' in it.get('comment', '')), None)
+    assert direct_hit_item is not None
+    assert direct_hit_item.get('emoji') == '💀'
+
+    # Shark niche
+    shark_res = client.post('/api/ai/generate-ranking', json={'topic': 'Ranking Best Shark Moments', 'itemCount': 6})
+    assert shark_res.status_code == 200
+    shark_data = shark_res.json()
+    assert shark_data['templateId'] == 'shark'
+    assert shark_data['accentColor'] == '#38bdf8'
+    not_now_item = next((it for it in shark_data['items'] if 'Not now' in it.get('comment', '')), None)
+    assert not_now_item is not None
+    assert not_now_item.get('emoji') == '😅'
+
+def test_export_viral_ranking_with_stack_and_watermark():
+    resp = client.get('/api/assets')
+    assets = resp.json()
+    videos = [a for a in assets if a['type'] == 'video']
+    assert len(videos) > 0
+
+    payload = {
+        'name': 'Viral Ranking Trampoline Export',
+        'title': 'Ranking Funniest Trampoline Moments',
+        'hookText': 'WAIT FOR NUMBER ONE 💀',
+        'aspectRatio': '9:16',
+        'resolution': '720p',
+        'fps': 30,
+        'templateId': 'trampoline',
+        'clips': [
+            {
+                'id': 'clip-1',
+                'assetId': videos[0]['id'],
+                'name': videos[0]['name'],
+                'sourceStart': 0,
+                'sourceEnd': 1.0,
+                'duration': 1.0,
+                'label': 'Super Bounce Record',
+                'rank': 1,
+                'rankColor': '#facc15',
+                'color': '#facc15',
+                'comment': '',
+            },
+            {
+                'id': 'clip-2',
+                'assetId': videos[0]['id'],
+                'name': videos[0]['name'],
+                'sourceStart': 0,
+                'sourceEnd': 1.0,
+                'duration': 1.0,
+                'label': 'Direct Hit',
+                'rank': 6,
+                'rankColor': '#ffffff',
+                'color': '#ffffff',
+                'comment': 'Direct hit',
+            }
+        ],
+        'layout': {
+            'canvasBackground': '#000000',
+            'topRegion': {
+                'enabled': True,
+                'mode': 'overlay',
+                'height': 14,
+                'backgroundColor': '#000000',
+                'fontColor': '#ffffff',
+                'title': 'Ranking Funniest Trampoline Moments',
+            },
+            'mainRegion': {'fitMode': 'fill', 'cornerRadius': 0, 'showRankBadge': False},
+            'bottomRegion': {'enabled': True, 'height': 8, 'backgroundColor': '#000000', 'fontColor': '#ffffff'},
+            'rankingList': {
+                'enabled': True,
+                'position': 'left',
+                'xOffset': 5,
+                'yOffset': 26,
+                'fontSize': 26,
+                'spacing': 14,
+            },
+            'watermark': {
+                'enabled': True,
+                'text': 'xiroranks',
+                'position': 'bottom-center',
+                'opacity': 0.65,
+            }
+        }
+    }
+
+    exp_resp = client.post('/api/export', json=payload)
+    assert exp_resp.status_code == 200
+    exp_data = exp_resp.json()
+    assert 'id' in exp_data
+    assert exp_data['size'] > 1000
+
+    # Verify download
+    dl_resp = client.get(f"/api/exports/{exp_data['id']}")
+    assert dl_resp.status_code == 200
+    assert dl_resp.headers['content-type'] == 'video/mp4'
+

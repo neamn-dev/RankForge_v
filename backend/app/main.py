@@ -219,34 +219,138 @@ BUILTIN_TEMPLATES = [
     },
     {
         'id': 'pool-fails',
-        'name': 'Pool Fails',
+        'name': 'WaterSlide & Pool Fails',
         'category': 'Comedy',
-        'description': 'High-contrast red accents and fast viral cuts.',
-        'colors': ['#ffffff', '#fb4b4b'],
-        'title': 'Ranking Pool Fails',
-        'accent': '#fb4b4b',
+        'description': 'Solid top banner with high-contrast red accents and left-side ranking stack.',
+        'colors': ['#ffffff', '#ef4444', '#facc15'],
+        'title': 'Ranking Funniest WaterSlide Fail Moments',
+        'accent': '#ef4444',
         'rankStyle': 'square',
         'layout': {
-            'canvasBackground': '#180a0a',
-            'topRegion': {'enabled': True, 'height': 14, 'backgroundColor': '#180a0a', 'fontColor': '#ff4d4d'},
-            'mainRegion': {'fitMode': 'blur-fill', 'cornerRadius': 12, 'showRankBadge': True, 'rankBadgePosition': 'top-left'},
-            'bottomRegion': {'enabled': True, 'height': 12, 'backgroundColor': '#180a0a', 'fontColor': '#ffffff'},
+            'canvasBackground': '#000000',
+            'topRegion': {
+                'enabled': True,
+                'mode': 'banner',
+                'height': 15,
+                'backgroundColor': '#000000',
+                'fontColor': '#ffffff',
+                'title': 'Ranking Funniest WaterSlide Fail Moments',
+                'titleWords': [
+                    {'text': 'Ranking', 'color': '#ffffff'},
+                    {'text': 'Funniest', 'color': '#ef4444'},
+                    {'text': 'WaterSlide', 'color': '#facc15'},
+                    {'text': 'Fail', 'color': '#facc15'},
+                    {'text': 'Moments', 'color': '#ffffff'},
+                ],
+                'strokeWidth': 4,
+                'strokeColor': '#000000',
+                'shadowStyle': '3d-heavy',
+            },
+            'mainRegion': {'fitMode': 'fill', 'cornerRadius': 0, 'showRankBadge': False, 'rankBadgePosition': 'top-left'},
+            'bottomRegion': {'enabled': True, 'height': 8, 'backgroundColor': '#000000', 'fontColor': '#ffffff'},
+            'rankingList': {
+                'enabled': True,
+                'position': 'left',
+                'xOffset': 5,
+                'yOffset': 26,
+                'fontSize': 26,
+                'spacing': 14,
+                'style3D': True,
+                'highlightActive': True,
+                'showAllRanks': True,
+                'displayMode': 'full',
+            },
+            'watermark': {'enabled': False, 'text': '', 'position': 'bottom-center', 'opacity': 0.7},
         },
     },
     {
         'id': 'trampoline',
-        'name': 'Action Highlights',
+        'name': 'Trampoline Moments',
         'category': 'Sports',
-        'description': 'Bright yellow and cyan sports action styling.',
-        'colors': ['#ffffff', '#facc15'],
-        'title': 'Best Action Moments',
+        'description': 'Floating 3D multi-color overlay title, left ranking stack, and viral reaction tags.',
+        'colors': ['#ffffff', '#facc15', '#38bdf8', '#ef4444'],
+        'title': 'Ranking Funniest Trampoline Moments',
         'accent': '#facc15',
         'rankStyle': 'pill',
         'layout': {
-            'canvasBackground': '#081426',
-            'topRegion': {'enabled': True, 'height': 13, 'backgroundColor': '#081426', 'fontColor': '#facc15'},
-            'mainRegion': {'fitMode': 'fill', 'cornerRadius': 8, 'showRankBadge': True, 'rankBadgePosition': 'top-right'},
-            'bottomRegion': {'enabled': True, 'height': 11, 'backgroundColor': '#081426', 'fontColor': '#ffffff'},
+            'canvasBackground': '#000000',
+            'topRegion': {
+                'enabled': True,
+                'mode': 'overlay',
+                'height': 15,
+                'backgroundColor': '#000000',
+                'fontColor': '#ffffff',
+                'title': 'Ranking Funniest Trampoline Moments',
+                'titleWords': [
+                    {'text': 'Ranking', 'color': '#ffffff'},
+                    {'text': 'Funniest', 'color': '#facc15'},
+                    {'text': 'Trampoline', 'color': '#38bdf8'},
+                    {'text': 'Moments', 'color': '#ffffff'},
+                ],
+                'strokeWidth': 4,
+                'strokeColor': '#000000',
+                'shadowStyle': '3d-heavy',
+            },
+            'mainRegion': {'fitMode': 'fill', 'cornerRadius': 0, 'showRankBadge': False, 'rankBadgePosition': 'top-right'},
+            'bottomRegion': {'enabled': True, 'height': 8, 'backgroundColor': '#000000', 'fontColor': '#ffffff'},
+            'rankingList': {
+                'enabled': True,
+                'position': 'left',
+                'xOffset': 5,
+                'yOffset': 26,
+                'fontSize': 26,
+                'spacing': 14,
+                'style3D': True,
+                'highlightActive': True,
+                'showAllRanks': True,
+                'displayMode': 'full',
+            },
+            'watermark': {'enabled': False, 'text': '', 'position': 'bottom-center', 'opacity': 0.7},
+        },
+    },
+    {
+        'id': 'shark',
+        'name': 'Shark Moments',
+        'category': 'Wildlife',
+        'description': 'Blur-fill ocean framing, floating 3D multi-color title, left ranking stack, and watermark.',
+        'colors': ['#ffffff', '#facc15', '#38bdf8', '#fb923c'],
+        'title': 'Ranking Best Shark Moments',
+        'accent': '#38bdf8',
+        'rankStyle': 'bold',
+        'layout': {
+            'canvasBackground': '#072540',
+            'topRegion': {
+                'enabled': True,
+                'mode': 'overlay',
+                'height': 15,
+                'backgroundColor': '#072540',
+                'fontColor': '#ffffff',
+                'title': 'Ranking Best Shark Moments',
+                'titleWords': [
+                    {'text': 'Ranking', 'color': '#ffffff'},
+                    {'text': 'Best', 'color': '#facc15'},
+                    {'text': 'Shark', 'color': '#38bdf8'},
+                    {'text': 'Moments', 'color': '#ffffff'},
+                ],
+                'strokeWidth': 4,
+                'strokeColor': '#000000',
+                'shadowStyle': '3d-heavy',
+            },
+            'mainRegion': {'fitMode': 'blur-fill', 'cornerRadius': 10, 'showRankBadge': False, 'rankBadgePosition': 'top-left'},
+            'bottomRegion': {'enabled': True, 'height': 20, 'backgroundColor': '#082a4a', 'fontColor': '#ffffff'},
+            'rankingList': {
+                'enabled': True,
+                'position': 'left',
+                'xOffset': 5,
+                'yOffset': 26,
+                'fontSize': 26,
+                'spacing': 14,
+                'style3D': True,
+                'highlightActive': True,
+                'showAllRanks': True,
+                'displayMode': 'full',
+            },
+            'watermark': {'enabled': True, 'text': 'xiroranks', 'position': 'bottom-center', 'opacity': 0.65},
         },
     },
     {
@@ -599,58 +703,72 @@ VIRAL_NICHES = {
         ],
     },
     'pool-fails': {
-        'templateId': 'pool-fails', 'accent': '#fb4b4b',
+        'templateId': 'pool-fails', 'accent': '#ef4444',
         'hook': 'WAIT TILL YOU SEE #1 😱',
         'items': [
-            ('Overconfident Launch', 'Slipped before the diving board even bounced', 'Overconfident Launch'),
-            ('Equipment Malfunction', 'Inflatable flamingo had other plans', 'Equipment Malfunction'),
-            ('Slippery Edge Regret', 'The exact second he realized there was no friction', 'Slippery Edge Regret'),
-            ('Uncalculated Trajectory', 'Total belly flop into the shallow end', 'Uncalculated Trajectory'),
-            ('The Instant Legend Fail', 'Diving board snapped in mid air', 'Diving Board Catastrophe'),
+            ('The Legendary 90-Degree Drop', 'Vertical drop slide fail with massive splash', 'Vertical Drop Fail', 'Legendary Drop', '😱', '#facc15'),
+            ('Almost Died Chute Launch', 'High speed chute launch flying over barrier', 'Almost Died Chute Launch', 'Almost died', '🤯', '#ffffff'),
+            ('Airborne Flip', 'Missed the water completely on launch', 'Airborne Flip', 'Airborne Flip', '', '#fb923c'),
+            ('Loop of Doom', 'Stuck halfway through the 360 loop', 'Loop of Doom', 'Loop of Doom', '', '#ffffff'),
+            ('Slide Jam', 'Three people collide in the dark slide tunnel', 'Slide Jam', 'Slide Jam', '', '#ffffff'),
+            ('Shallow Splash', 'Slipped before the diving board even bounced', 'Shallow Splash', 'Diving Board Fail', '💀', '#ffffff'),
+        ],
+    },
+    'shark': {
+        'templateId': 'shark', 'accent': '#38bdf8',
+        'hook': 'WAIT FOR NUMBER ONE 🦈',
+        'items': [
+            ('Great White Apex Launch', 'Breaching the surface with massive power', 'Apex Breach', 'Apex Launch', '🦈', '#facc15'),
+            ('Cage Bump Close-Up', 'Shark swims directly into the steel observation cage', 'Cage Bump Close-Up', 'Cage Bump', '', '#38bdf8'),
+            ('Breaching The Surface', 'Full body airborne breach off the coast', 'Breaching The Surface', 'Airborne Breach', '', '#fb923c'),
+            ('High Velocity Glide', 'Silently approaching divers in crystal blue water', 'High Velocity Glide', 'Stealth Glide', '', '#ffffff'),
+            ('Deep Abyss Stare', 'Eye-to-eye contact in deep oceanic trench', 'Deep Abyss Stare', 'Deep Stare', '', '#ffffff'),
+            ('Not Now Diver Encounter', 'Diver casually pushes shark nose away', 'Not Now Diver Encounter', 'Not now', '😅', '#ffffff'),
         ],
     },
     'bruh': {
         'templateId': 'bruh', 'accent': '#4ade80',
         'hook': 'BRO DID NOT JUST DO THAT 💀',
         'items': [
-            ('Questionable Life Choice', 'Confidence was 100, execution was zero', 'Questionable Life Choice'),
-            ('Awkward Silence Moment', 'Wave back to someone waving at someone behind you', 'Awkward Silence Moment'),
-            ('The Instant Betrayal', 'Best friend dropped the pizza box upside down', 'The Instant Betrayal'),
-            ('Unexpected Guest Entrance', 'Walked directly into the glass sliding door', 'Glass Door Incident'),
-            ('Absolute Peak Bruh', 'Looked for phone for 10 minutes while holding it', 'Absolute Peak Bruh'),
+            ('Questionable Life Choice', 'Confidence was 100, execution was zero', 'Questionable Life Choice', 'Questionable Move', '🤡', '#ffffff'),
+            ('Awkward Silence Moment', 'Wave back to someone waving at someone behind you', 'Awkward Silence Moment', 'Cringe Wave', '👀', '#ffffff'),
+            ('The Instant Betrayal', 'Best friend dropped the pizza box upside down', 'The Instant Betrayal', 'Instant Betrayal', '⚡', '#fb923c'),
+            ('Unexpected Guest Entrance', 'Walked directly into the glass sliding door', 'Glass Door Incident', 'Glass Door Fail', '', '#38bdf8'),
+            ('Absolute Peak Bruh', 'Looked for phone for 10 minutes while holding it', 'Absolute Peak Bruh', 'Peak Bruh', '💀', '#facc15'),
         ],
     },
     'trampoline': {
         'templateId': 'trampoline', 'accent': '#facc15',
-        'hook': 'WAIT FOR THE FINAL TRICK 🔥',
+        'hook': 'WAIT FOR NUMBER ONE 💀',
         'items': [
-            ('Triple Backflip Attempt', 'Rotation speed was dizzying', 'Triple Backflip Attempt'),
-            ('Roof To Trampoline Jump', 'Calculated jump into maximum bounce', 'Roof To Trampoline Jump'),
-            ('Synchronized Double Bounce', 'Two acrobats launched simultaneously', 'Synchronized Bounce'),
-            ('Wall-Run Defiance', 'Running up the vertical wall and flipping backwards', 'Wall-Run Defiance'),
-            ('World Record Airtime', 'Super trampoline launch reaching roof height', 'World Record Airtime'),
+            ('Super Trampoline Record', 'World record launch reaching roof height', 'World Record Airtime', 'Super Bounce', '🔥', '#facc15'),
+            ('Wall-Run Defiance', 'Running up the vertical wall and flipping backwards', 'Wall-Run Defiance', 'Wall Run', '', '#38bdf8'),
+            ('Roof To Trampoline Jump', 'Calculated jump into maximum bounce', 'Roof To Trampoline Jump', 'Roof Drop', '', '#ef4444'),
+            ('Synchronized Double Bounce', 'Two acrobats launched simultaneously', 'Synchronized Bounce', 'Double Bounce', '', '#ffffff'),
+            ('Triple Backflip Attempt', 'Rotation speed was dizzying', 'Triple Backflip Attempt', 'Triple Flip', '', '#ffffff'),
+            ('Direct Hit Fail', 'Landed directly on the outer spring ring', 'Direct Hit Fail', 'Direct hit', '💀', '#ffffff'),
         ],
     },
     'gaming': {
         'templateId': 'gaming', 'accent': '#c084fc',
         'hook': 'NO WAY HE HIT THAT CLUTCH 🎮',
         'items': [
-            ('1v5 Impossible Defuse', 'Last bullet, zero armor, full squad wipe', '1v5 Clutch Defuse'),
-            ('360 No-Scope Across Map', 'He shot blindly through the smoke', '360 No-Scope'),
-            ('Frame-Perfect Parry', 'Countered the boss at 1% health', 'Frame-Perfect Parry'),
-            ('Speedrun World Record', 'Skip that bypassed 40 minutes of gameplay', 'Glitch World Record'),
-            ('The 200 IQ Trap', 'Lured the entire enemy team into one grenade', '200 IQ Trap'),
+            ('1v5 Impossible Defuse', 'Last bullet, zero armor, full squad wipe', '1v5 Clutch Defuse', 'Clutch Defuse', '⚡', '#c084fc'),
+            ('360 No-Scope Across Map', 'He shot blindly through the smoke', '360 No-Scope', 'No-Scope', '🔥', '#38bdf8'),
+            ('Frame-Perfect Parry', 'Countered the boss at 1% health', 'Frame-Perfect Parry', 'Frame Perfect', '', '#ffffff'),
+            ('Speedrun World Record', 'Skip that bypassed 40 minutes of gameplay', 'Glitch World Record', 'World Record', '🏆', '#facc15'),
+            ('The 200 IQ Trap', 'Lured the entire enemy team into one grenade', '200 IQ Trap', '200 IQ Play', '🧠', '#ffffff'),
         ],
     },
     'classic': {
         'templateId': 'classic', 'accent': '#22d3ee',
         'hook': 'WAIT FOR NUMBER ONE 🤯',
         'items': [
-            ('Mind-Bending Highlight', 'Nobody expected this sequence of events', 'Mind-Bending Highlight'),
-            ('Unreal Performance', 'Peak precision under maximum pressure', 'Unreal Performance'),
-            ('Surprising Twist', 'The outcome flipped in three seconds', 'Surprising Twist'),
-            ('Crowd Favorite Pick', 'The moment that made the entire arena roar', 'Crowd Favorite Pick'),
-            ('The Undisputed #1 Entry', 'Historic perfection that will never be topped', 'Undisputed #1 Legend'),
+            ('Mind-Bending Highlight', 'Nobody expected this sequence of events', 'Mind-Bending Highlight', 'Unbelievable', '🔥', '#ffffff'),
+            ('Unreal Performance', 'Peak precision under maximum pressure', 'Unreal Performance', 'Clean Execution', '', '#ffffff'),
+            ('Surprising Twist', 'The outcome flipped in three seconds', 'Surprising Twist', 'Surprise Twist', '👀', '#fb923c'),
+            ('Crowd Favorite Pick', 'The moment that made the entire arena roar', 'Crowd Favorite Pick', 'Crowd Favorite', '🏆', '#38bdf8'),
+            ('The Undisputed #1 Entry', 'Historic perfection that will never be topped', 'Undisputed #1 Legend', 'The Legend', '👑', '#facc15'),
         ],
     },
 }
@@ -694,17 +812,19 @@ def generate_ranking(req: AIGenerateRequest):
         return llm_result
 
     t_lower = topic.lower()
-    if any(k in t_lower for k in ['cat', 'dog', 'animal', 'pet', 'wildlife', 'kitten', 'puppy']):
+    if any(k in t_lower for k in ['shark', 'ocean', 'marine', 'sea', 'underwater', 'fish']):
+        category_key = 'shark'
+    elif any(k in t_lower for k in ['cat', 'dog', 'animal', 'pet', 'wildlife', 'kitten', 'puppy']):
         category_key = 'cats'
     elif any(k in t_lower for k in ['game', 'gaming', 'clutch', 'fps', 'fortnite', 'cod', 'esports', 'minecraft', 'streamer']):
         category_key = 'gaming'
     elif any(k in t_lower for k in ['goal', 'football', 'soccer', 'basketball', 'dunk', 'nba', 'sports', 'athlete', 'race', 'tennis']):
         category_key = 'sports'
-    elif any(k in t_lower for k in ['fail', 'pool', 'gym', 'accident', 'wipeout', 'skate', 'slip', 'crash']):
+    elif any(k in t_lower for k in ['slide', 'waterslide', 'water slide', 'pool', 'fail', 'accident', 'wipeout', 'skate', 'slip', 'crash']):
         category_key = 'pool-fails'
     elif any(k in t_lower for k in ['bruh', 'funny', 'meme', 'comedy', 'humor', 'lol', 'cringe', 'joke']):
         category_key = 'bruh'
-    elif any(k in t_lower for k in ['trampoline', 'trick', 'stunt', 'parkour', 'flip', 'jump']):
+    elif any(k in t_lower for k in ['trampoline', 'trick', 'stunt', 'parkour', 'flip', 'jump', 'bounce']):
         category_key = 'trampoline'
     else:
         category_key = 'classic'
@@ -720,12 +840,37 @@ def generate_ranking(req: AIGenerateRequest):
 
     for i in range(count):
         rank = count - i
+        comment = ''
+        emoji = ''
+        rank_color = '#ffffff'
         if i < len(source_items):
-            label, desc, narration = source_items[i]
+            entry = source_items[i]
+            label = entry[0]
+            desc = entry[1]
+            narration = entry[2]
+            if len(entry) > 3:
+                comment = entry[3]
+            if len(entry) > 4:
+                emoji = entry[4]
+            if len(entry) > 5:
+                rank_color = entry[5]
+            else:
+                if rank == 1:
+                    rank_color = '#facc15'
+                elif rank == 2:
+                    rank_color = '#38bdf8'
+                elif rank == 3:
+                    rank_color = '#ef4444'
         else:
             label = f'Unreal {clean_topic} #{rank}'
             desc = f'Spectacular highlight ranked at position #{rank}'
             narration = f'Coming in at number {rank}, check out this unbelievable {clean_topic} moment!'
+            if rank == 1:
+                rank_color = '#facc15'
+            elif rank == 2:
+                rank_color = '#38bdf8'
+            elif rank == 3:
+                rank_color = '#ef4444'
 
         dur = round(3.2 + (count - rank) * 0.25, 1)
         items.append({
@@ -734,6 +879,9 @@ def generate_ranking(req: AIGenerateRequest):
             'duration': dur,
             'description': desc,
             'narration': narration,
+            'comment': comment,
+            'emoji': emoji,
+            'rankColor': rank_color,
         })
 
     return {
@@ -826,8 +974,18 @@ def export_project(payload: ProjectPayload):
     durations = []
     clip_labels = []
 
-    font_file = Path('C:/Windows/Fonts/arial.ttf')
-    font_opt = "fontfile='C\\:/Windows/Fonts/arial.ttf':" if font_file.exists() else ""
+    font_bold_file = Path('C:/Windows/Fonts/arialbd.ttf')
+    font_reg_file = Path('C:/Windows/Fonts/arial.ttf')
+    if font_bold_file.exists():
+        font_bold_opt = "fontfile='C\\:/Windows/Fonts/arialbd.ttf':"
+    elif font_reg_file.exists():
+        font_bold_opt = "fontfile='C\\:/Windows/Fonts/arial.ttf':"
+    else:
+        font_bold_opt = ""
+    font_opt = font_bold_opt
+
+    ranking_cfg = layout.get('rankingList') or {}
+    watermark_cfg = layout.get('watermark') or {}
 
     for i, (c, is_img) in enumerate(zip(clips, clip_is_image)):
         try:
@@ -899,20 +1057,23 @@ def export_project(payload: ProjectPayload):
             )
             current_v = comp_tag
 
-        if top_enabled and top_h > 10:
-            top_box_tag = f'topbox{i}'
-            filters.append(
-                f'[{current_v}]drawbox=x=0:y=0:w={w}:h={top_h}:color={top_bg}:t=fill[{top_box_tag}]'
-            )
-            current_v = top_box_tag
+        top_mode = top_cfg.get('mode', 'overlay')
+        top_title = top_cfg.get('title') or payload.title
+        if top_enabled:
+            if top_mode == 'banner' and top_h > 10:
+                top_box_tag = f'topbox{i}'
+                filters.append(
+                    f'[{current_v}]drawbox=x=0:y=0:w={w}:h={top_h}:color={top_bg}:t=fill[{top_box_tag}]'
+                )
+                current_v = top_box_tag
 
-            top_title = top_cfg.get('title') or payload.title
             if top_title:
                 top_txt_tag = f'toptxt{i}'
                 top_color = to_ffmpeg_color(top_cfg.get('fontColor', '#ffffff'), default='white')
-                fs = max(18, int(top_h * 0.40))
+                fs = max(20, int(h * 0.032))
+                ty = int(top_h * 0.28) if (top_mode == 'banner' and top_h > 10) else int(h * 0.045)
                 filters.append(
-                    f"[{current_v}]drawtext={font_opt}text='{escape_drawtext(top_title[:80])}':fontcolor={top_color}:borderw=2:bordercolor=black:fontsize={fs}:x=(w-text_w)/2:y={int(top_h * 0.28)}[{top_txt_tag}]"
+                    f"[{current_v}]drawtext={font_bold_opt}text='{escape_drawtext(top_title[:80])}':fontcolor={top_color}:borderw=4:bordercolor=black:fontsize={fs}:x=(w-text_w)/2:y={ty}[{top_txt_tag}]"
                 )
                 current_v = top_txt_tag
 
@@ -933,7 +1094,47 @@ def export_project(payload: ProjectPayload):
                 )
                 current_v = bot_txt_tag
 
-        if main_cfg.get('showRankBadge', True):
+        # Persistent Left-Side Vertical Ranking Stack (matching images 1, 2, 3)
+        if ranking_cfg.get('enabled', True):
+            rx_pct = float(ranking_cfg.get('xOffset', 5)) / 100.0
+            ry_pct = float(ranking_cfg.get('yOffset', 26)) / 100.0
+            rx = int(w * rx_pct)
+            ry_base = int(h * ry_pct)
+            r_fs = max(22, int(h * 0.030))
+            r_spacing = int(h * 0.052)
+
+            sorted_clips = sorted(clips, key=lambda c_it: c_it.get('rank', 99))
+            for r_idx, r_clip in enumerate(sorted_clips):
+                r_num = r_clip.get('rank', r_idx + 1)
+                r_comment = str(r_clip.get('comment') or '').strip()
+                r_text = f"{r_num}."
+                if r_comment:
+                    r_text += f" {r_comment}"
+
+                fallback_col = '#facc15' if r_num == 1 else ('#38bdf8' if r_num == 2 else ('#ef4444' if r_num == 3 else 'white'))
+                r_color = to_ffmpeg_color(r_clip.get('rankColor') or r_clip.get('color'), default=fallback_col)
+                r_row_y = ry_base + r_idx * r_spacing
+                r_tag = f'rankrow_{i}_{r_idx}'
+                filters.append(
+                    f"[{current_v}]drawtext={font_bold_opt}text='{escape_drawtext(r_text)}':fontcolor={r_color}:borderw=4:bordercolor=black:fontsize={r_fs}:x={rx}:y={r_row_y}[{r_tag}]"
+                )
+                current_v = r_tag
+
+        # Watermark (matching image 2)
+        if watermark_cfg.get('enabled') and watermark_cfg.get('text'):
+            wm_text = escape_drawtext(str(watermark_cfg['text']).strip())
+            wm_alpha = float(watermark_cfg.get('opacity', 0.65))
+            wm_fs = max(14, int(h * 0.018))
+            wm_pos = watermark_cfg.get('position', 'bottom-center')
+            wm_y = int(h * 0.84)
+            wm_x = '(w-text_w)/2' if wm_pos == 'bottom-center' else (f'{int(w * 0.75)}' if 'right' in wm_pos else f'{int(w * 0.06)}')
+            wm_tag = f'watermark_{i}'
+            filters.append(
+                f"[{current_v}]drawtext={font_bold_opt}text='{wm_text}':fontcolor=white@{wm_alpha:.2f}:borderw=1:bordercolor=black:fontsize={wm_fs}:x={wm_x}:y={wm_y}[{wm_tag}]"
+            )
+            current_v = wm_tag
+
+        if main_cfg.get('showRankBadge', False):
             badge_tag = f'badge{i}'
             rank_num = c.get('rank', len(clips) - i)
             badge_pos = main_cfg.get('rankBadgePosition', 'top-left')

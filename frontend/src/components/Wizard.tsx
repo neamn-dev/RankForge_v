@@ -12,36 +12,40 @@ interface RankDraftItem {
   label: string;
   duration: number;
   description: string;
+  comment?: string;
+  emoji?: string;
+  rankColor?: string;
 }
 
 const INSPIRATION_CHIPS = [
+  'Ranking Funniest Trampoline Moments',
+  'Ranking Best Shark Moments',
+  'Ranking Funniest WaterSlide Fail Moments',
   'Top 5 Unreal Cat Moments',
   'Top 5 Impossible Gym Fails',
   'Top 5 Craziest Skate Tricks',
-  'Top 5 Scariest Rollercoasters',
-  'Top 5 Viral TikTok Dances',
-  'Top 5 Mind-Blowing Science Facts',
 ];
 
 export default function Wizard() {
   const { state, dispatch } = useStore();
   const { wizardOpen, wizardStep, templates, project } = state;
 
-  const [topic, setTopic] = useState('Top 5 Unreal Cat Moments');
+  const [topic, setTopic] = useState('Ranking Funniest Trampoline Moments');
   const [platform, setPlatform] = useState('YouTube Shorts');
   const [aspectRatio, setAspectRatio] = useState('9:16');
-  const [itemCount, setItemCount] = useState(5);
-  const [hookText, setHookText] = useState('WAIT FOR NUMBER ONE 🐈');
-  const [selectedTemplateId, setSelectedTemplateId] = useState('cats');
+  const [itemCount, setItemCount] = useState(6);
+  const [hookText, setHookText] = useState('WAIT FOR NUMBER ONE 💀');
+  const [selectedTemplateId, setSelectedTemplateId] = useState('trampoline');
   const [selectedLayoutPreset, setSelectedLayoutPreset] = useState('Full Black');
   const [loadingAi, setLoadingAi] = useState(false);
 
   const [items, setItems] = useState<RankDraftItem[]>([
-    { rank: 5, label: 'Swimming Cat Fail', duration: 3.5, description: 'Hilarious miscalculation' },
-    { rank: 4, label: 'Laser Pointer Drift', duration: 3.2, description: 'Instant Tokyo drift move' },
-    { rank: 3, label: 'The Cucumber Jump', duration: 3.0, description: 'Zero gravity takeoff' },
-    { rank: 2, label: 'Keyboard Typist Cat', duration: 3.8, description: 'Working overtime' },
-    { rank: 1, label: 'The Ultimate Plot Twist', duration: 4.2, description: 'Unbelievable jump save' },
+    { rank: 1, label: 'Super Trampoline Record', duration: 4.0, description: 'Roof height launch', comment: '', emoji: '🔥', rankColor: '#facc15' },
+    { rank: 2, label: 'Wall Run Flip', duration: 3.8, description: 'Backwards wall kick', comment: '', emoji: '', rankColor: '#38bdf8' },
+    { rank: 3, label: 'Roof Trampoline Drop', duration: 3.5, description: 'Direct jump from roof', comment: '', emoji: '', rankColor: '#ef4444' },
+    { rank: 4, label: 'Synchronized Bounce', duration: 3.5, description: 'Simultaneous bounce', comment: '', emoji: '', rankColor: '#ffffff' },
+    { rank: 5, label: 'Triple Flip Fail', duration: 3.5, description: 'Dizzying rotation', comment: '', emoji: '', rankColor: '#ffffff' },
+    { rank: 6, label: 'Direct Hit Outer Spring', duration: 4.2, description: 'Direct hit on outer frame', comment: 'Direct hit', emoji: '💀', rankColor: '#ffffff' },
   ]);
 
   if (!wizardOpen) return null;
@@ -66,15 +70,18 @@ export default function Wizard() {
         if (Array.isArray(data.items)) {
           setItems(
             data.items.map((it: any, i: number) => ({
-              rank: data.items.length - i,
+              rank: it.rank ?? (data.items.length - i),
               label: it.label || `Rank ${data.items.length - i}`,
               duration: it.duration || 3.5,
               description: it.description || '',
+              comment: it.comment || '',
+              emoji: it.emoji || '',
+              rankColor: it.rankColor || (it.rank === 1 ? '#facc15' : it.rank === 2 ? '#38bdf8' : it.rank === 3 ? '#ef4444' : '#ffffff'),
             }))
           );
         }
         if (data.templateId) setSelectedTemplateId(data.templateId);
-        dispatch({ type: 'SET_NOTICE', message: 'AI ranking generated!' });
+        dispatch({ type: 'SET_NOTICE', message: 'Viral AI ranking generated!' });
         dispatch({ type: 'SET_WIZARD_STEP', step: 1 });
       } else {
         fallbackGenerate();
@@ -87,16 +94,20 @@ export default function Wizard() {
   };
 
   const fallbackGenerate = () => {
-    const title = topic.trim() || 'Top 5 Moments';
-    const cleanTopic = title.replace(/^top\s*\d+\s*/i, '');
-    setHookText(`WAIT TILL YOU SEE #1! 😱`);
+    const title = topic.trim() || 'Ranking Funniest Moments';
+    const cleanTopic = title.replace(/^top\s*\d+\s*/i, '').replace(/^ranking\s*/i, '');
+    setHookText(`WAIT FOR NUMBER ONE 💀`);
     const newItems: RankDraftItem[] = [];
-    for (let i = itemCount; i >= 1; i--) {
+    for (let i = 1; i <= itemCount; i++) {
+      const isLast = i === itemCount;
       newItems.push({
         rank: i,
         label: i === 1 ? `The Greatest ${cleanTopic}` : `${cleanTopic} #${i}`,
-        duration: 3.2 + (itemCount - i) * 0.2,
+        duration: 3.5 + (itemCount - i) * 0.2,
         description: `Highlight ranked at #${i}`,
+        comment: isLast ? 'Direct hit' : '',
+        emoji: isLast ? '💀' : (i === 1 ? '🔥' : ''),
+        rankColor: i === 1 ? '#facc15' : i === 2 ? '#38bdf8' : i === 3 ? '#ef4444' : '#ffffff',
       });
     }
     setItems(newItems);
@@ -107,7 +118,8 @@ export default function Wizard() {
   const finishWizard = () => {
     dispatch({ type: 'COMMIT' });
     const chosenTemplate = templates.find(t => t.id === selectedTemplateId) || templates[0];
-    const accent = chosenTemplate?.accent || '#22d3ee';
+    const accent = chosenTemplate?.accent || '#facc15';
+    const tplLayout = chosenTemplate?.layout || {};
 
     // Pair available video assets with ranking entries
     const videoAssets = state.assets.filter(a => a.type === 'video');
@@ -116,6 +128,7 @@ export default function Wizard() {
     // Build clips from items
     const clips = items.map((it, idx) => {
       const assignedAsset = videoAssets[idx % Math.max(1, videoAssets.length)] || null;
+      const rankColor = it.rankColor || (it.rank === 1 ? '#facc15' : it.rank === 2 ? '#38bdf8' : it.rank === 3 ? '#ef4444' : '#ffffff');
       return {
         id: crypto.randomUUID(),
         assetId: assignedAsset ? assignedAsset.id : null,
@@ -126,7 +139,10 @@ export default function Wizard() {
         duration: it.duration,
         label: it.label,
         rank: it.rank,
-        color: idx === items.length - 1 ? accent : '#ffffff',
+        color: rankColor,
+        rankColor: rankColor,
+        comment: it.comment || '',
+        emoji: it.emoji || '',
         description: it.description,
         speed: 1.0,
         adjustments: { brightness: 100, contrast: 100, saturation: 100 },
@@ -156,16 +172,27 @@ export default function Wizard() {
         musicAssetId: bgMusicId,
         layout: {
           ...project.layout,
+          ...tplLayout,
           canvasBackground: bgColor,
           topRegion: {
             ...project.layout.topRegion,
-            backgroundColor: bgColor,
+            ...(tplLayout.topRegion || {}),
+            backgroundColor: (tplLayout.topRegion?.mode === 'overlay' ? 'transparent' : bgColor),
             title: topic,
             subtitle: platform,
           },
+          rankingList: {
+            ...project.layout.rankingList,
+            ...(tplLayout.rankingList || {}),
+            enabled: true,
+          },
+          watermark: {
+            ...project.layout.watermark,
+            ...(tplLayout.watermark || {}),
+          },
           bottomRegion: {
             ...project.layout.bottomRegion,
-            backgroundColor: bgColor,
+            ...(tplLayout.bottomRegion || {}),
             caption: hookText,
             creatorHandle: '@RankForgeCreator',
           },
@@ -377,16 +404,30 @@ export default function Wizard() {
                         setItems(copy);
                       }}
                     />
-                    <input
-                      type="text"
-                      value={it.description}
-                      placeholder="Short description / commentary"
-                      onChange={e => {
-                        const copy = [...items];
-                        copy[idx].description = e.target.value;
-                        setItems(copy);
-                      }}
-                    />
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <input
+                        type="text"
+                        value={it.comment || ''}
+                        placeholder="Viral Tag (e.g. Direct hit, Almost died)"
+                        style={{ flex: 1, fontSize: 11 }}
+                        onChange={e => {
+                          const copy = [...items];
+                          copy[idx].comment = e.target.value;
+                          setItems(copy);
+                        }}
+                      />
+                      <input
+                        type="text"
+                        value={it.emoji || ''}
+                        placeholder="💀"
+                        style={{ width: 44, textAlign: 'center', fontSize: 13 }}
+                        onChange={e => {
+                          const copy = [...items];
+                          copy[idx].emoji = e.target.value;
+                          setItems(copy);
+                        }}
+                      />
+                    </div>
                   </div>
                   <input
                     type="number"

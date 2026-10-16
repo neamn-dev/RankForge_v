@@ -26,6 +26,9 @@ export interface Clip {
   label: string;
   rank: number;
   color: string;
+  rankColor?: string;
+  comment?: string;
+  emoji?: string;
   description?: string;
   speed?: number;
   transition?: string;
@@ -37,15 +40,24 @@ export interface Clip {
   narration?: string;
 }
 
+export interface TitleWord {
+  text: string;
+  color: string;
+}
 
 // ─── Sandwich Layout ─────────────────────────────────────
 export interface TopRegionConfig {
   enabled: boolean;
+  mode?: 'overlay' | 'banner' | 'glass';
   height: number;
   backgroundColor: string;
   gradient: string;
   title: string;
   subtitle: string;
+  titleWords?: TitleWord[];
+  strokeWidth?: number;
+  strokeColor?: string;
+  shadowStyle?: 'none' | 'subtle' | '3d-heavy' | 'glow';
   fontSize: number;
   fontColor: string;
   fontFamily: string;
@@ -82,11 +94,33 @@ export interface BottomRegionConfig {
   animation: 'none' | 'fade' | 'slide-up';
 }
 
+export interface RankingListConfig {
+  enabled: boolean;
+  position: 'left' | 'right';
+  xOffset: number;
+  yOffset: number;
+  fontSize: number;
+  spacing: number;
+  style3D: boolean;
+  highlightActive: boolean;
+  showAllRanks: boolean;
+  displayMode: 'number-only' | 'with-comment' | 'full';
+}
+
+export interface WatermarkConfig {
+  enabled: boolean;
+  text: string;
+  position: 'bottom-center' | 'bottom-right' | 'bottom-left';
+  opacity: number;
+}
+
 export interface SandwichLayout {
   preset: string;
   topRegion: TopRegionConfig;
   mainRegion: MainRegionConfig;
   bottomRegion: BottomRegionConfig;
+  rankingList: RankingListConfig;
+  watermark: WatermarkConfig;
   spacing: number;
   canvasBackground: string;
 }
@@ -162,12 +196,22 @@ export type InspectorTab =
 // ─── Defaults ────────────────────────────────────────────
 export const DEFAULT_TOP_REGION: TopRegionConfig = {
   enabled: true,
-  height: 12,
+  mode: 'overlay',
+  height: 14,
   backgroundColor: '#000000',
   gradient: '',
-  title: '',
+  title: 'Ranking Funniest Trampoline Moments',
   subtitle: '',
-  fontSize: 24,
+  titleWords: [
+    { text: 'Ranking', color: '#ffffff' },
+    { text: 'Funniest', color: '#facc15' },
+    { text: 'Trampoline', color: '#38bdf8' },
+    { text: 'Moments', color: '#ffffff' },
+  ],
+  strokeWidth: 4,
+  strokeColor: '#000000',
+  shadowStyle: '3d-heavy',
+  fontSize: 28,
   fontColor: '#ffffff',
   fontFamily: 'Space Grotesk',
   alignment: 'center',
@@ -181,7 +225,7 @@ export const DEFAULT_MAIN_REGION: MainRegionConfig = {
   cornerRadius: 0,
   borderWidth: 0,
   borderColor: '#ffffff',
-  showRankBadge: true,
+  showRankBadge: false,
   rankBadgePosition: 'top-left',
   rankBadgeStyle: 'circle',
   padding: 0,
@@ -203,11 +247,33 @@ export const DEFAULT_BOTTOM_REGION: BottomRegionConfig = {
   animation: 'none',
 };
 
+export const DEFAULT_RANKING_LIST: RankingListConfig = {
+  enabled: true,
+  position: 'left',
+  xOffset: 5,
+  yOffset: 26,
+  fontSize: 26,
+  spacing: 8,
+  style3D: true,
+  highlightActive: true,
+  showAllRanks: true,
+  displayMode: 'full',
+};
+
+export const DEFAULT_WATERMARK: WatermarkConfig = {
+  enabled: false,
+  text: 'xiroranks',
+  position: 'bottom-center',
+  opacity: 0.8,
+};
+
 export const DEFAULT_LAYOUT: SandwichLayout = {
   preset: 'classic-sandwich',
   topRegion: { ...DEFAULT_TOP_REGION },
   mainRegion: { ...DEFAULT_MAIN_REGION },
   bottomRegion: { ...DEFAULT_BOTTOM_REGION },
+  rankingList: { ...DEFAULT_RANKING_LIST },
+  watermark: { ...DEFAULT_WATERMARK },
   spacing: 0,
   canvasBackground: '#000000',
 };
@@ -215,20 +281,117 @@ export const DEFAULT_LAYOUT: SandwichLayout = {
 export function createDefaultProject(): Project {
   return {
     id: null,
-    name: 'Untitled Ranking',
-    title: 'Top 5 Moments',
-    hookText: 'WAIT FOR NUMBER ONE',
+    name: 'Ranking Funniest Trampoline Moments',
+    title: 'Ranking Funniest Trampoline Moments',
+    hookText: 'WAIT FOR NUMBER ONE 💀',
     aspectRatio: '9:16',
     resolution: '1080p',
     fps: 30,
-    templateId: 'classic',
-    clips: [],
+    templateId: 'trampoline',
+    clips: [
+      {
+        id: 'clip-def-1',
+        assetId: null,
+        name: 'Super Trampoline Record.mp4',
+        duration: 4.0,
+        sourceStart: 0,
+        sourceEnd: 4.0,
+        label: 'Super Trampoline Record',
+        rank: 1,
+        rankColor: '#facc15',
+        color: '#facc15',
+        speed: 1.0,
+        comment: '',
+        emoji: '🔥',
+        adjustments: { brightness: 100, contrast: 100, saturation: 100 },
+      },
+      {
+        id: 'clip-def-2',
+        assetId: null,
+        name: 'Wall Run Flip.mp4',
+        duration: 3.8,
+        sourceStart: 0,
+        sourceEnd: 3.8,
+        label: 'Wall Run Flip',
+        rank: 2,
+        rankColor: '#38bdf8',
+        color: '#38bdf8',
+        speed: 1.0,
+        comment: '',
+        emoji: '',
+        adjustments: { brightness: 100, contrast: 100, saturation: 100 },
+      },
+      {
+        id: 'clip-def-3',
+        assetId: null,
+        name: 'Roof Trampoline Drop.mp4',
+        duration: 3.5,
+        sourceStart: 0,
+        sourceEnd: 3.5,
+        label: 'Roof Trampoline Drop',
+        rank: 3,
+        rankColor: '#ef4444',
+        color: '#ef4444',
+        speed: 1.0,
+        comment: '',
+        emoji: '',
+        adjustments: { brightness: 100, contrast: 100, saturation: 100 },
+      },
+      {
+        id: 'clip-def-4',
+        assetId: null,
+        name: 'Synchronized Bounce.mp4',
+        duration: 3.5,
+        sourceStart: 0,
+        sourceEnd: 3.5,
+        label: 'Synchronized Bounce',
+        rank: 4,
+        rankColor: '#ffffff',
+        color: '#ffffff',
+        speed: 1.0,
+        comment: '',
+        emoji: '',
+        adjustments: { brightness: 100, contrast: 100, saturation: 100 },
+      },
+      {
+        id: 'clip-def-5',
+        assetId: null,
+        name: 'Triple Flip Fail.mp4',
+        duration: 3.5,
+        sourceStart: 0,
+        sourceEnd: 3.5,
+        label: 'Triple Flip Fail',
+        rank: 5,
+        rankColor: '#ffffff',
+        color: '#ffffff',
+        speed: 1.0,
+        comment: '',
+        emoji: '',
+        adjustments: { brightness: 100, contrast: 100, saturation: 100 },
+      },
+      {
+        id: 'clip-def-6',
+        assetId: null,
+        name: 'Direct Hit Outer Spring.mp4',
+        duration: 4.2,
+        sourceStart: 0,
+        sourceEnd: 4.2,
+        label: 'Direct Hit Outer Spring',
+        rank: 6,
+        rankColor: '#ffffff',
+        color: '#ffffff',
+        speed: 1.0,
+        comment: 'Direct hit',
+        emoji: '💀',
+        adjustments: { brightness: 100, contrast: 100, saturation: 100 },
+      },
+    ],
     musicAssetId: null,
     musicVolume: 0.22,
     titleColor: '#ffffff',
-    accentColor: '#22d3ee',
+    accentColor: '#facc15',
     layout: { ...DEFAULT_LAYOUT },
-    category: 'General',
+    category: 'Sports',
     platform: 'YouTube Shorts',
   };
 }

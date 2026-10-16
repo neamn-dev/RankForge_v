@@ -82,6 +82,8 @@ export type Action =
   | { type: 'SET_TOP_REGION'; config: Partial<TopRegionConfig> }
   | { type: 'SET_MAIN_REGION'; config: Partial<MainRegionConfig> }
   | { type: 'SET_BOTTOM_REGION'; config: Partial<BottomRegionConfig> }
+  | { type: 'SET_RANKING_LIST'; config: Partial<import('./types').RankingListConfig> }
+  | { type: 'SET_WATERMARK'; config: Partial<import('./types').WatermarkConfig> }
   | { type: 'APPLY_TEMPLATE'; template: Template }
   // Lifecycle
   | { type: 'LOAD_PROJECT'; project: Project }
@@ -222,6 +224,38 @@ function reducer(state: AppState, action: Action): AppState {
         saved: false,
       };
 
+    case 'SET_RANKING_LIST':
+      return {
+        ...state,
+        project: {
+          ...state.project,
+          layout: {
+            ...state.project.layout,
+            rankingList: {
+              ...(state.project.layout.rankingList || {}),
+              ...action.config,
+            },
+          },
+        },
+        saved: false,
+      };
+
+    case 'SET_WATERMARK':
+      return {
+        ...state,
+        project: {
+          ...state.project,
+          layout: {
+            ...state.project.layout,
+            watermark: {
+              ...(state.project.layout.watermark || {}),
+              ...action.config,
+            },
+          },
+        },
+        saved: false,
+      };
+
     case 'APPLY_TEMPLATE': {
       const t = action.template;
       const layoutOverrides = t.layout || {};
@@ -248,9 +282,17 @@ function reducer(state: AppState, action: Action): AppState {
               ...state.project.layout.bottomRegion,
               ...(layoutOverrides.bottomRegion || {}),
             },
+            rankingList: {
+              ...state.project.layout.rankingList,
+              ...(layoutOverrides.rankingList || {}),
+            },
+            watermark: {
+              ...state.project.layout.watermark,
+              ...(layoutOverrides.watermark || {}),
+            },
           },
         },
-        tool: 'Media',
+        tool: 'Ranking',
         saved: false,
       };
     }
@@ -258,8 +300,17 @@ function reducer(state: AppState, action: Action): AppState {
     // ── Lifecycle ──
     case 'LOAD_PROJECT': {
       const p = action.project;
-      // Ensure layout exists for older projects
-      const layout = p.layout || { ...DEFAULT_LAYOUT };
+      const baseLayout = { ...DEFAULT_LAYOUT };
+      const rawLayout = p.layout || {};
+      const layout = {
+        ...baseLayout,
+        ...rawLayout,
+        topRegion: { ...baseLayout.topRegion, ...(rawLayout.topRegion || {}) },
+        mainRegion: { ...baseLayout.mainRegion, ...(rawLayout.mainRegion || {}) },
+        bottomRegion: { ...baseLayout.bottomRegion, ...(rawLayout.bottomRegion || {}) },
+        rankingList: { ...baseLayout.rankingList, ...(rawLayout.rankingList || {}) },
+        watermark: { ...baseLayout.watermark, ...(rawLayout.watermark || {}) },
+      };
       return {
         ...state,
         project: { ...createDefaultProject(), ...p, layout },
@@ -319,7 +370,34 @@ function reducer(state: AppState, action: Action): AppState {
     }
 
     // ── Data ──
-    case 'SET_ASSETS': return { ...state, assets: action.assets };
+    case 'SET_ASSETS': {
+      const videoAssets = action.assets.filter(a => a.type === 'video');
+      const audioAssets = action.assets.filter(a => a.type === 'audio');
+      const updatedClips = state.project.clips.map((c, idx) => {
+        if (!c.assetId && videoAssets.length > 0) {
+          const matched = videoAssets.find(v => v.name.toLowerCase().includes(c.name.toLowerCase().replace('.mp4', '')))
+            || videoAssets[idx % videoAssets.length];
+          if (matched) {
+            return {
+              ...c,
+              assetId: matched.id,
+              url: matched.url,
+            };
+          }
+        }
+        return c;
+      });
+      const musicId = state.project.musicAssetId || audioAssets[0]?.id || null;
+      return {
+        ...state,
+        assets: action.assets,
+        project: {
+          ...state.project,
+          clips: updatedClips,
+          musicAssetId: musicId,
+        },
+      };
+    }
     case 'ADD_ASSETS': return { ...state, assets: [...state.assets, ...action.assets] };
     case 'REMOVE_ASSET':
       return {

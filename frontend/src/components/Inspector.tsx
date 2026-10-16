@@ -76,54 +76,92 @@ export default function Inspector() {
                     />
                   </label>
 
-                  <div className="two-fields" style={{ marginTop: 10 }}>
-                    <label>
-                      Accent color
+                  {/* Viral Reaction & Note (Matches images: Direct hit 💀 / Not now 😅) */}
+                  <div style={{ marginTop: 10, background: '#0c131d', padding: 10, borderRadius: 6, border: '1px solid #1c2838' }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: '#e2edf8', marginBottom: 6 }}>
+                      Viral Tag & Emoji Reaction:
+                    </div>
+                    <div style={{ display: 'flex', gap: 6 }}>
                       <input
-                        type="color"
-                        value={clip.color || project.accentColor}
-                        onChange={e => updateClip({ color: e.target.value })}
+                        type="text"
+                        placeholder="Tag (e.g. Direct hit)"
+                        value={clip.comment || ''}
+                        style={{ flex: 1, background: '#131d28', border: '1px solid #28394e', borderRadius: 4, padding: 6, fontSize: 10, color: '#ffffff' }}
+                        onChange={e => updateClip({ comment: e.target.value })}
                         onBlur={() => dispatch({ type: 'COMMIT' })}
                       />
-                    </label>
-                    <label>
-                      Badge style
-                      <select
-                        value={project.layout.mainRegion.rankBadgeStyle}
-                        onChange={e => {
-                          dispatch({ type: 'COMMIT' });
-                          dispatch({
-                            type: 'SET_MAIN_REGION',
-                            config: { rankBadgeStyle: e.target.value as any },
-                          });
-                        }}
-                      >
-                        <option value="circle">Circle</option>
-                        <option value="square">Square</option>
-                        <option value="pill">Pill</option>
-                        <option value="outline">Outline</option>
-                      </select>
-                    </label>
-                  </div>
+                      <input
+                        type="text"
+                        placeholder="Emoji"
+                        value={clip.emoji || ''}
+                        style={{ width: 44, textAlign: 'center', background: '#131d28', border: '1px solid #28394e', borderRadius: 4, padding: 6, fontSize: 11, color: '#ffffff' }}
+                        onChange={e => updateClip({ emoji: e.target.value })}
+                        onBlur={() => dispatch({ type: 'COMMIT' })}
+                      />
+                    </div>
 
-                  <label style={{ marginTop: 10 }}>
-                    Badge position
-                    <select
-                      value={project.layout.mainRegion.rankBadgePosition}
-                      onChange={e => {
-                        dispatch({ type: 'COMMIT' });
-                        dispatch({
-                          type: 'SET_MAIN_REGION',
-                          config: { rankBadgePosition: e.target.value as any },
-                        });
-                      }}
-                    >
-                      <option value="top-left">Top Left</option>
-                      <option value="top-right">Top Right</option>
-                      <option value="bottom-left">Bottom Left</option>
-                      <option value="bottom-right">Bottom Right</option>
-                    </select>
-                  </label>
+                    {/* Quick Emojis */}
+                    <div style={{ display: 'flex', gap: 3, marginTop: 6, overflowX: 'auto' }}>
+                      {['💀', '😅', '🤯', '😱', '🔥', '🏆', '👀', '🤡', '⚡', '💯'].map(emoji => (
+                        <button
+                          key={emoji}
+                          type="button"
+                          style={{
+                            background: clip.emoji === emoji ? '#23384f' : '#141d28',
+                            border: clip.emoji === emoji ? '1px solid #20c8f2' : '1px solid #223244',
+                            borderRadius: 4,
+                            padding: '2px 4px',
+                            fontSize: 11,
+                            cursor: 'pointer',
+                          }}
+                          onClick={() => {
+                            dispatch({ type: 'COMMIT' });
+                            updateClip({ emoji: clip.emoji === emoji ? '' : emoji });
+                          }}
+                          title={`Set emoji ${emoji}`}
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Rank Number Color Palette */}
+                    <div style={{ marginTop: 8 }}>
+                      <span style={{ fontSize: 9, color: '#8291a3', display: 'block', marginBottom: 4 }}>
+                        Rank #{clip.rank} Number Color:
+                      </span>
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                        {[
+                          ['#facc15', 'Yellow'],
+                          ['#38bdf8', 'Sky Blue'],
+                          ['#ef4444', 'Red'],
+                          ['#ffffff', 'White'],
+                          ['#4ade80', 'Green'],
+                          ['#fb923c', 'Orange'],
+                          ['#c084fc', 'Purple'],
+                        ].map(([col, name]) => (
+                          <button
+                            key={col}
+                            type="button"
+                            style={{
+                              width: 16,
+                              height: 16,
+                              borderRadius: '50%',
+                              background: col,
+                              border: (clip.rankColor || clip.color) === col ? '2px solid #ffffff' : '1px solid rgba(0,0,0,0.6)',
+                              cursor: 'pointer',
+                              padding: 0,
+                            }}
+                            onClick={() => {
+                              dispatch({ type: 'COMMIT' });
+                              updateClip({ rankColor: col, color: col });
+                            }}
+                            title={name}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
 
                   <div className="rank-actions" style={{ marginTop: 12 }}>
                     <button onClick={() => moveClip(-1)}>
@@ -476,7 +514,89 @@ export default function Inspector() {
             ══════════════════════════════════════════════════ */}
         {inspectorTab === 'Layout' && (
           <div className="prop-section">
-            <h4><Layers size={13} /> Sandwich Layout Quick Controls</h4>
+            <h4><Layers size={13} /> Sandwich & Viral Layout Controls</h4>
+
+            {/* Top Header Mode */}
+            <label>
+              Header Mode
+              <select
+                value={project.layout.topRegion.mode || 'overlay'}
+                onChange={e => {
+                  dispatch({ type: 'COMMIT' });
+                  dispatch({ type: 'SET_TOP_REGION', config: { mode: e.target.value as any } });
+                }}
+              >
+                <option value="overlay">Floating 3D Overlay (Images 1 & 2)</option>
+                <option value="banner">Solid Header Box (Image 3)</option>
+              </select>
+            </label>
+
+            {/* Persistent Left Ranking Stack Toggle & Offsets */}
+            <div style={{ marginTop: 12, background: '#101722', border: '1px solid #1f2d3e', borderRadius: 8, padding: 10 }}>
+              <label className="toggle-row" style={{ fontSize: 10, fontWeight: 700, color: '#e2edf8', marginBottom: 8 }}>
+                <input
+                  type="checkbox"
+                  checked={project.layout.rankingList?.enabled !== false}
+                  onChange={e => {
+                    dispatch({ type: 'COMMIT' });
+                    dispatch({ type: 'SET_RANKING_LIST', config: { enabled: e.target.checked } });
+                  }}
+                />
+                <span>Show Left Ranking Stack</span>
+              </label>
+
+              {project.layout.rankingList?.enabled !== false && (
+                <>
+                  <label className="range-label" style={{ marginTop: 6 }}>
+                    Top Offset <span>{project.layout.rankingList?.yOffset ?? 26}%</span>
+                    <input
+                      type="range"
+                      min={10}
+                      max={45}
+                      value={project.layout.rankingList?.yOffset ?? 26}
+                      onChange={e => dispatch({ type: 'SET_RANKING_LIST', config: { yOffset: Number(e.target.value) } })}
+                      onMouseUp={() => dispatch({ type: 'COMMIT' })}
+                    />
+                  </label>
+                  <label className="range-label" style={{ marginTop: 6 }}>
+                    Left Offset <span>{project.layout.rankingList?.xOffset ?? 5}%</span>
+                    <input
+                      type="range"
+                      min={2}
+                      max={20}
+                      value={project.layout.rankingList?.xOffset ?? 5}
+                      onChange={e => dispatch({ type: 'SET_RANKING_LIST', config: { xOffset: Number(e.target.value) } })}
+                      onMouseUp={() => dispatch({ type: 'COMMIT' })}
+                    />
+                  </label>
+                </>
+              )}
+            </div>
+
+            {/* Creator Watermark (Image 2: xiroranks) */}
+            <div style={{ marginTop: 12, background: '#101722', border: '1px solid #1f2d3e', borderRadius: 8, padding: 10 }}>
+              <label className="toggle-row" style={{ fontSize: 10, fontWeight: 700, color: '#e2edf8', marginBottom: 6 }}>
+                <input
+                  type="checkbox"
+                  checked={project.layout.watermark?.enabled !== false}
+                  onChange={e => {
+                    dispatch({ type: 'COMMIT' });
+                    dispatch({ type: 'SET_WATERMARK', config: { enabled: e.target.checked } });
+                  }}
+                />
+                <span>Show Creator Watermark</span>
+              </label>
+
+              <label>
+                Watermark Handle
+                <input
+                  value={project.layout.watermark?.text || ''}
+                  placeholder="e.g. xiroranks"
+                  onChange={e => dispatch({ type: 'SET_WATERMARK', config: { text: e.target.value } })}
+                  onBlur={() => dispatch({ type: 'COMMIT' })}
+                />
+              </label>
+            </div>
             <label className="range-label">
               Top bar height <span>{project.layout.topRegion.height}%</span>
             </label>

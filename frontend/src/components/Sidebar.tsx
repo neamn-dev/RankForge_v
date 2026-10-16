@@ -212,14 +212,14 @@ export default function Sidebar() {
         </div>
 
         {/* ══════════════════════════════════════════════════
-            RANKING ENTRIES PANEL (Viblo / CapCut Inspired)
+            RANKING ENTRIES PANEL (Viral Ranking Studio)
             ══════════════════════════════════════════════════ */}
         {tool === 'Ranking' && (
           <div className="scroll">
             <div className="section-head">
               <div>
-                <b>Rank Entries</b>
-                <small>{project.clips.length} ranked items in countdown</small>
+                <b>Ranking Countdown Studio</b>
+                <small>{project.clips.length} ranked items with viral styles</small>
               </div>
               <button
                 className="small-btn"
@@ -236,6 +236,9 @@ export default function Sidebar() {
                     label: `Highlight #${newRank}`,
                     rank: newRank,
                     color: project.accentColor,
+                    rankColor: newRank === 1 ? '#facc15' : newRank === 2 ? '#38bdf8' : newRank === 3 ? '#ef4444' : '#ffffff',
+                    comment: '',
+                    emoji: '',
                   };
                   dispatch({ type: 'ADD_CLIP', clip: c });
                 }}
@@ -244,39 +247,126 @@ export default function Sidebar() {
               </button>
             </div>
 
+            {/* ── Left-Side Persistent Ranking Stack Settings (Images 1, 2, 3) ── */}
+            <div
+              style={{
+                background: '#121a26',
+                border: '1px solid #223244',
+                borderRadius: 8,
+                padding: 10,
+                marginBottom: 12,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <label className="toggle-row" style={{ fontSize: 11, fontWeight: 700, color: '#e2edf8' }}>
+                  <input
+                    type="checkbox"
+                    checked={project.layout.rankingList?.enabled !== false}
+                    onChange={e => {
+                      dispatch({ type: 'COMMIT' });
+                      dispatch({ type: 'SET_RANKING_LIST', config: { enabled: e.target.checked } });
+                    }}
+                  />
+                  <span>Show Left Ranking Stack Overlay</span>
+                </label>
+                <span style={{ fontSize: 9, color: '#38bdf8', fontWeight: 600 }}>TikTok / Shorts</span>
+              </div>
+
+              {project.layout.rankingList?.enabled !== false && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, paddingTop: 4 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                    <label style={{ fontSize: 9, color: '#8899aa' }}>
+                      Top Offset: <b>{project.layout.rankingList?.yOffset ?? 26}%</b>
+                      <input
+                        type="range"
+                        min={10}
+                        max={45}
+                        value={project.layout.rankingList?.yOffset ?? 26}
+                        onChange={e => dispatch({ type: 'SET_RANKING_LIST', config: { yOffset: Number(e.target.value) } })}
+                        onMouseUp={() => dispatch({ type: 'COMMIT' })}
+                        style={{ width: '100%', height: 3 }}
+                      />
+                    </label>
+                    <label style={{ fontSize: 9, color: '#8899aa' }}>
+                      Left Offset: <b>{project.layout.rankingList?.xOffset ?? 5}%</b>
+                      <input
+                        type="range"
+                        min={2}
+                        max={20}
+                        value={project.layout.rankingList?.xOffset ?? 5}
+                        onChange={e => dispatch({ type: 'SET_RANKING_LIST', config: { xOffset: Number(e.target.value) } })}
+                        onMouseUp={() => dispatch({ type: 'COMMIT' })}
+                        style={{ width: '100%', height: 3 }}
+                      />
+                    </label>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                    <label style={{ fontSize: 9, color: '#8899aa' }}>
+                      Number Size: <b>{project.layout.rankingList?.fontSize ?? 26}px</b>
+                      <input
+                        type="range"
+                        min={18}
+                        max={38}
+                        value={project.layout.rankingList?.fontSize ?? 26}
+                        onChange={e => dispatch({ type: 'SET_RANKING_LIST', config: { fontSize: Number(e.target.value) } })}
+                        onMouseUp={() => dispatch({ type: 'COMMIT' })}
+                        style={{ width: '100%', height: 3 }}
+                      />
+                    </label>
+                    <label style={{ fontSize: 9, color: '#8899aa' }}>
+                      Item Spacing: <b>{project.layout.rankingList?.spacing ?? 8}px</b>
+                      <input
+                        type="range"
+                        min={3}
+                        max={18}
+                        value={project.layout.rankingList?.spacing ?? 8}
+                        onChange={e => dispatch({ type: 'SET_RANKING_LIST', config: { spacing: Number(e.target.value) } })}
+                        onMouseUp={() => dispatch({ type: 'COMMIT' })}
+                        style={{ width: '100%', height: 3 }}
+                      />
+                    </label>
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Quick Renumber Controls */}
             <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
               <button
                 className="secondary"
                 style={{ flex: 1, fontSize: 10, padding: '6px 8px' }}
-                title="Renumber as Countdown: #5 down to #1"
+                title="Renumber as Countdown: #6 down to #1"
                 onClick={() => {
                   dispatch({ type: 'COMMIT' });
                   dispatch({ type: 'RENUMBER_RANKS', mode: 'countdown' });
-                  dispatch({ type: 'SET_NOTICE', message: 'Renumbered in countdown order (#5 -> #1)' });
+                  dispatch({ type: 'SET_NOTICE', message: 'Renumbered in countdown order (#6 -> #1)' });
                 }}
               >
-                <ArrowDown size={12} /> Countdown (#5→#1)
+                <ArrowDown size={12} /> Countdown (#6→#1)
               </button>
               <button
                 className="secondary"
                 style={{ flex: 1, fontSize: 10, padding: '6px 8px' }}
-                title="Renumber standard: #1 up to #5"
+                title="Renumber standard: #1 up to #6"
                 onClick={() => {
                   dispatch({ type: 'COMMIT' });
                   dispatch({ type: 'RENUMBER_RANKS', mode: 'standard' });
-                  dispatch({ type: 'SET_NOTICE', message: 'Renumbered in standard order (#1→#5)' });
+                  dispatch({ type: 'SET_NOTICE', message: 'Renumbered in standard order (#1→#6)' });
                 }}
               >
-                <ArrowUp size={12} /> Standard (#1→#5)
+                <ArrowUp size={12} /> Standard (#1→#6)
               </button>
             </div>
 
             {/* List of ranking entries */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {project.clips.map((c, index) => {
                 const isSelected = clip?.id === c.id;
                 const asset = assets.find(a => a.id === c.assetId);
+                const currentRankColor =
+                  c.rankColor ||
+                  c.color ||
+                  (c.rank === 1 ? '#facc15' : c.rank === 2 ? '#38bdf8' : c.rank === 3 ? '#ef4444' : '#ffffff');
 
                 return (
                   <div
@@ -294,16 +384,19 @@ export default function Sidebar() {
                     }}
                     onClick={() => dispatch({ type: 'SET_SELECTED', clipId: c.id })}
                   >
+                    {/* Header: Rank Number, Label, Actions */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <span
                           className="clip-rank-badge"
                           style={{
-                            background: c.color || project.accentColor,
-                            fontWeight: 800,
-                            fontSize: 11,
+                            background: currentRankColor,
+                            color: currentRankColor === '#ffffff' || currentRankColor === '#facc15' ? '#000000' : '#ffffff',
+                            fontWeight: 900,
+                            fontSize: 12,
                             padding: '3px 8px',
                             borderRadius: 6,
+                            textShadow: 'none',
                           }}
                         >
                           #{c.rank}
@@ -311,7 +404,7 @@ export default function Sidebar() {
                         <input
                           type="text"
                           value={c.label || ''}
-                          placeholder="Rank title label"
+                          placeholder="Clip title"
                           style={{
                             background: 'transparent',
                             border: 'none',
@@ -371,6 +464,128 @@ export default function Sidebar() {
                       </div>
                     </div>
 
+                    {/* Viral Reaction & Note row (Matches: "6. Direct hit 💀", "6. Not now 😅", "2. Almost died 🤯") */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, background: '#0a0f16', padding: '6px 8px', borderRadius: 6 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ fontSize: 9, color: '#7e90a2', whiteSpace: 'nowrap' }}>Tag & Reaction:</span>
+                        <input
+                          type="text"
+                          placeholder="e.g. Direct hit / Almost died"
+                          value={c.comment || ''}
+                          style={{
+                            flex: 1,
+                            background: '#131c28',
+                            border: '1px solid #233346',
+                            borderRadius: 4,
+                            padding: '3px 6px',
+                            fontSize: 10,
+                            color: '#ffffff',
+                          }}
+                          onChange={e => {
+                            dispatch({
+                              type: 'UPDATE_CLIP',
+                              clipId: c.id,
+                              payload: { comment: e.target.value },
+                            });
+                          }}
+                          onBlur={() => dispatch({ type: 'COMMIT' })}
+                          onClick={e => e.stopPropagation()}
+                        />
+                        <input
+                          type="text"
+                          placeholder="Emoji"
+                          value={c.emoji || ''}
+                          style={{
+                            width: 38,
+                            textAlign: 'center',
+                            background: '#131c28',
+                            border: '1px solid #233346',
+                            borderRadius: 4,
+                            padding: '3px 4px',
+                            fontSize: 11,
+                            color: '#ffffff',
+                          }}
+                          onChange={e => {
+                            dispatch({
+                              type: 'UPDATE_CLIP',
+                              clipId: c.id,
+                              payload: { emoji: e.target.value },
+                            });
+                          }}
+                          onBlur={() => dispatch({ type: 'COMMIT' })}
+                          onClick={e => e.stopPropagation()}
+                        />
+                      </div>
+
+                      {/* 1-Click Quick Emoji Picker */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, overflowX: 'auto', paddingTop: 2 }}>
+                        {['💀', '😅', '🤯', '😱', '🔥', '🏆', '👀', '🤡', '⚡', '💯'].map(emoji => (
+                          <button
+                            key={emoji}
+                            type="button"
+                            style={{
+                              background: c.emoji === emoji ? '#23384f' : 'transparent',
+                              border: c.emoji === emoji ? '1px solid #20c8f2' : '1px solid transparent',
+                              borderRadius: 3,
+                              fontSize: 11,
+                              padding: '1px 3px',
+                              cursor: 'pointer',
+                            }}
+                            onClick={e => {
+                              e.stopPropagation();
+                              dispatch({ type: 'COMMIT' });
+                              dispatch({
+                                type: 'UPDATE_CLIP',
+                                clipId: c.id,
+                                payload: { emoji: c.emoji === emoji ? '' : emoji },
+                              });
+                            }}
+                            title={`Set emoji ${emoji}`}
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Quick Rank Number Color Palette */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 5, paddingTop: 3 }}>
+                        <span style={{ fontSize: 8, color: '#68798d' }}>Number color:</span>
+                        {[
+                          ['#facc15', 'Yellow'],
+                          ['#38bdf8', 'Blue'],
+                          ['#ef4444', 'Red'],
+                          ['#ffffff', 'White'],
+                          ['#4ade80', 'Green'],
+                          ['#fb923c', 'Orange'],
+                          ['#c084fc', 'Purple'],
+                        ].map(([col, name]) => (
+                          <button
+                            key={col}
+                            type="button"
+                            style={{
+                              width: 13,
+                              height: 13,
+                              borderRadius: '50%',
+                              background: col,
+                              border: currentRankColor === col ? '2px solid #ffffff' : '1px solid rgba(0,0,0,0.5)',
+                              cursor: 'pointer',
+                              padding: 0,
+                            }}
+                            onClick={e => {
+                              e.stopPropagation();
+                              dispatch({ type: 'COMMIT' });
+                              dispatch({
+                                type: 'UPDATE_CLIP',
+                                clipId: c.id,
+                                payload: { rankColor: col, color: col },
+                              });
+                            }}
+                            title={name}
+                          />
+                        ))}
+                      </div>
+                    </div>
+
                     {/* Media status & duration row */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 10, color: '#7e90a2' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -401,12 +616,158 @@ export default function Sidebar() {
             <div className="section-head">
               <div>
                 <b>Template Library</b>
-                <small>Choose a visual theme for the sandwich composition.</small>
+                <small>Choose a visual theme for the ranking composition.</small>
               </div>
               <button className="small-btn" onClick={handleSaveAsCustomTemplate}>
                 <Plus size={14} /> Save Current
               </button>
             </div>
+
+            {/* Quick Inspiration Presets Matching Uploaded Images */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
+              <button
+                className="secondary"
+                style={{
+                  justifyContent: 'flex-start',
+                  padding: '8px 12px',
+                  background: 'linear-gradient(135deg, #162438, #0e1622)',
+                  borderColor: '#20c8f2',
+                }}
+                onClick={() => {
+                  dispatch({ type: 'COMMIT' });
+                  dispatch({
+                    type: 'UPDATE_PROJECT',
+                    payload: {
+                      title: 'Ranking Funniest Trampoline Moments',
+                      name: 'Ranking Funniest Trampoline Moments',
+                      templateId: 'trampoline',
+                      accentColor: '#facc15',
+                      layout: {
+                        ...project.layout,
+                        topRegion: {
+                          ...project.layout.topRegion,
+                          mode: 'overlay',
+                          title: 'Ranking Funniest Trampoline Moments',
+                          fontSize: 26,
+                        },
+                        mainRegion: {
+                          ...project.layout.mainRegion,
+                          fitMode: 'fill',
+                        },
+                        rankingList: {
+                          ...project.layout.rankingList,
+                          enabled: true,
+                          xOffset: 5,
+                          yOffset: 26,
+                        },
+                      },
+                    },
+                  });
+                  dispatch({ type: 'SET_NOTICE', message: 'Applied Funniest Trampoline Moments style!' });
+                }}
+              >
+                <span style={{ color: '#facc15', fontWeight: 800 }}>⚡ Image 1:</span>
+                <span style={{ marginLeft: 6 }}>Funniest Trampoline Moments</span>
+              </button>
+
+              <button
+                className="secondary"
+                style={{
+                  justifyContent: 'flex-start',
+                  padding: '8px 12px',
+                  background: 'linear-gradient(135deg, #0e2433, #0a1722)',
+                  borderColor: '#38bdf8',
+                }}
+                onClick={() => {
+                  dispatch({ type: 'COMMIT' });
+                  dispatch({
+                    type: 'UPDATE_PROJECT',
+                    payload: {
+                      title: 'Ranking Best Shark Moments',
+                      name: 'Ranking Best Shark Moments',
+                      templateId: 'shark',
+                      accentColor: '#38bdf8',
+                      layout: {
+                        ...project.layout,
+                        topRegion: {
+                          ...project.layout.topRegion,
+                          mode: 'overlay',
+                          title: 'Ranking Best Shark Moments',
+                          fontSize: 26,
+                        },
+                        mainRegion: {
+                          ...project.layout.mainRegion,
+                          fitMode: 'blur-fill',
+                        },
+                        watermark: {
+                          enabled: true,
+                          text: 'xiroranks',
+                          position: 'bottom-center',
+                          opacity: 0.8,
+                        },
+                        rankingList: {
+                          ...project.layout.rankingList,
+                          enabled: true,
+                          xOffset: 5,
+                          yOffset: 30,
+                        },
+                      },
+                    },
+                  });
+                  dispatch({ type: 'SET_NOTICE', message: 'Applied Best Shark Moments style (Blur-Fill)!' });
+                }}
+              >
+                <span style={{ color: '#38bdf8', fontWeight: 800 }}>🦈 Image 2:</span>
+                <span style={{ marginLeft: 6 }}>Best Shark Moments (Blur-Fill)</span>
+              </button>
+
+              <button
+                className="secondary"
+                style={{
+                  justifyContent: 'flex-start',
+                  padding: '8px 12px',
+                  background: 'linear-gradient(135deg, #2b1111, #160a0a)',
+                  borderColor: '#ef4444',
+                }}
+                onClick={() => {
+                  dispatch({ type: 'COMMIT' });
+                  dispatch({
+                    type: 'UPDATE_PROJECT',
+                    payload: {
+                      title: 'Ranking Funniest WaterSlide Fail Moments',
+                      name: 'Ranking Funniest WaterSlide Fail Moments',
+                      templateId: 'pool-fails',
+                      accentColor: '#ef4444',
+                      layout: {
+                        ...project.layout,
+                        topRegion: {
+                          ...project.layout.topRegion,
+                          mode: 'banner',
+                          backgroundColor: '#000000',
+                          title: 'Ranking Funniest WaterSlide Fail Moments',
+                          fontSize: 24,
+                        },
+                        mainRegion: {
+                          ...project.layout.mainRegion,
+                          fitMode: 'fill',
+                        },
+                        rankingList: {
+                          ...project.layout.rankingList,
+                          enabled: true,
+                          xOffset: 5,
+                          yOffset: 24,
+                        },
+                      },
+                    },
+                  });
+                  dispatch({ type: 'SET_NOTICE', message: 'Applied WaterSlide Fail Moments style (Top Banner)!' });
+                }}
+              >
+                <span style={{ color: '#ef4444', fontWeight: 800 }}>🌊 Image 3:</span>
+                <span style={{ marginLeft: 6 }}>WaterSlide Fail (Top Banner)</span>
+              </button>
+            </div>
+
             {templates.map(t => (
               <button
                 key={t.id}
@@ -433,22 +794,164 @@ export default function Sidebar() {
         )}
 
         {/* ══════════════════════════════════════════════════
-            TEXT & TITLES PANEL
+            TEXT & TITLES PANEL (Interactive Word Highlighter)
             ══════════════════════════════════════════════════ */}
         {tool === 'Text' && (
           <div className="scroll text-editor">
             <h3>Text & Titles</h3>
-            <p>Customize overlay text and banner cards for the composition.</p>
+            <p>Customize 3D overlay titles and multi-color word highlights.</p>
+
             <label>
-              Main project title
+              Main Title
               <textarea
                 rows={2}
                 value={project.title}
-                onChange={e => dispatch({ type: 'UPDATE_PROJECT', payload: { title: e.target.value } })}
+                onChange={e => {
+                  dispatch({ type: 'UPDATE_PROJECT', payload: { title: e.target.value } });
+                  dispatch({ type: 'SET_TOP_REGION', config: { title: e.target.value, titleWords: [] } });
+                }}
                 onBlur={() => dispatch({ type: 'COMMIT' })}
               />
             </label>
-            <label>
+
+            {/* Interactive Word Color Highlighter (WYSIWYG) */}
+            <div style={{ background: '#121a25', border: '1px solid #233346', borderRadius: 8, padding: 10, margin: '10px 0' }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#e2edf8', marginBottom: 6 }}>
+                Interactive Word Color Highlighter:
+              </div>
+              <p style={{ fontSize: 9, color: '#8899aa', margin: '0 0 8px' }}>
+                Click any word below to assign viral highlight colors (Yellow, Sky Blue, Red):
+              </p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {project.title.trim().split(/\s+/).map((word, wIdx) => {
+                  const existingWord = project.layout.topRegion.titleWords?.[wIdx];
+                  const wordCol = existingWord ? existingWord.color : (
+                    ['funniest', 'best', 'unreal'].includes(word.toLowerCase()) ? '#facc15' :
+                    ['trampoline', 'shark', 'sports'].includes(word.toLowerCase()) ? '#38bdf8' :
+                    ['fail', 'fails', 'slide'].includes(word.toLowerCase()) ? '#ef4444' : '#ffffff'
+                  );
+
+                  return (
+                    <div key={wIdx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+                      <span
+                        style={{
+                          background: '#192534',
+                          border: `1px solid ${wordCol}`,
+                          borderRadius: 4,
+                          padding: '3px 8px',
+                          fontSize: 11,
+                          fontWeight: 700,
+                          color: wordCol,
+                        }}
+                      >
+                        {word}
+                      </span>
+                      {/* Color dots for this word */}
+                      <div style={{ display: 'flex', gap: 2 }}>
+                        {[
+                          ['#ffffff', 'White'],
+                          ['#facc15', 'Yellow'],
+                          ['#38bdf8', 'Blue'],
+                          ['#ef4444', 'Red'],
+                          ['#4ade80', 'Green'],
+                        ].map(([col, name]) => (
+                          <button
+                            key={col}
+                            type="button"
+                            style={{
+                              width: 10,
+                              height: 10,
+                              borderRadius: '50%',
+                              background: col,
+                              border: wordCol === col ? '1px solid #fff' : 'none',
+                              cursor: 'pointer',
+                              padding: 0,
+                            }}
+                            onClick={() => {
+                              dispatch({ type: 'COMMIT' });
+                              const allWords = project.title.trim().split(/\s+/).map((w, i) => {
+                                if (i === wIdx) return { text: w, color: col };
+                                const prev = project.layout.topRegion.titleWords?.[i];
+                                return prev || { text: w, color: '#ffffff' };
+                              });
+                              dispatch({ type: 'SET_TOP_REGION', config: { titleWords: allWords } });
+                            }}
+                            title={name}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Top Banner Mode (Floating Overlay vs Solid Header Box) */}
+            <label style={{ marginTop: 12 }}>
+              Top Header Mode
+              <select
+                value={project.layout.topRegion.mode || 'overlay'}
+                onChange={e => {
+                  dispatch({ type: 'COMMIT' });
+                  dispatch({ type: 'SET_TOP_REGION', config: { mode: e.target.value as any } });
+                }}
+              >
+                <option value="overlay">Floating 3D Overlay (Images 1 & 2)</option>
+                <option value="banner">Solid Header Box (Image 3)</option>
+              </select>
+            </label>
+
+            <label className="range-label" style={{ marginTop: 10 }}>
+              Title Font Size <span>{project.layout.topRegion.fontSize}px</span>
+              <input
+                type="range"
+                min={18}
+                max={38}
+                value={project.layout.topRegion.fontSize}
+                onChange={e => dispatch({ type: 'SET_TOP_REGION', config: { fontSize: Number(e.target.value) } })}
+                onMouseUp={() => dispatch({ type: 'COMMIT' })}
+              />
+            </label>
+
+            {/* Creator Watermark (Matching Image 2: "xiroranks") */}
+            <h4 style={{ marginTop: 20 }}>Creator Watermark & Handle</h4>
+            <div style={{ background: '#121a25', border: '1px solid #233346', borderRadius: 8, padding: 10 }}>
+              <label className="toggle-row" style={{ fontSize: 10, marginBottom: 8 }}>
+                <input
+                  type="checkbox"
+                  checked={project.layout.watermark?.enabled !== false}
+                  onChange={e => {
+                    dispatch({ type: 'COMMIT' });
+                    dispatch({ type: 'SET_WATERMARK', config: { enabled: e.target.checked } });
+                  }}
+                />
+                <b>Show Creator Watermark (e.g. xiroranks)</b>
+              </label>
+
+              <label>
+                Watermark text
+                <input
+                  value={project.layout.watermark?.text || ''}
+                  placeholder="e.g. xiroranks / @creator"
+                  onChange={e => dispatch({ type: 'SET_WATERMARK', config: { text: e.target.value } })}
+                  onBlur={() => dispatch({ type: 'COMMIT' })}
+                />
+              </label>
+
+              <label className="range-label" style={{ marginTop: 8 }}>
+                Watermark Opacity <span>{Math.round((project.layout.watermark?.opacity ?? 0.8) * 100)}%</span>
+                <input
+                  type="range"
+                  min={20}
+                  max={100}
+                  value={Math.round((project.layout.watermark?.opacity ?? 0.8) * 100)}
+                  onChange={e => dispatch({ type: 'SET_WATERMARK', config: { opacity: Number(e.target.value) / 100 } })}
+                  onMouseUp={() => dispatch({ type: 'COMMIT' })}
+                />
+              </label>
+            </div>
+
+            <label style={{ marginTop: 14 }}>
               Opening hook text (first 1.8s)
               <textarea
                 rows={2}
@@ -457,26 +960,6 @@ export default function Sidebar() {
                 onBlur={() => dispatch({ type: 'COMMIT' })}
               />
             </label>
-            <div className="colors">
-              <label>
-                Title color
-                <input
-                  type="color"
-                  value={project.titleColor}
-                  onChange={e => dispatch({ type: 'UPDATE_PROJECT', payload: { titleColor: e.target.value } })}
-                  onBlur={() => dispatch({ type: 'COMMIT' })}
-                />
-              </label>
-              <label>
-                Rank accent
-                <input
-                  type="color"
-                  value={project.accentColor}
-                  onChange={e => dispatch({ type: 'UPDATE_PROJECT', payload: { accentColor: e.target.value } })}
-                  onBlur={() => dispatch({ type: 'COMMIT' })}
-                />
-              </label>
-            </div>
             <label className="check-label">
               <input
                 type="checkbox"
@@ -484,48 +967,6 @@ export default function Sidebar() {
                 onChange={e => dispatch({ type: 'SET_HOOK_ON', on: e.target.checked })}
               />
               Show opening hook
-            </label>
-
-            {/* Top region text */}
-            <h4 style={{ marginTop: 20 }}>Top banner text</h4>
-            <label>
-              Top title
-              <input
-                value={project.layout.topRegion.title}
-                placeholder="e.g. TOP 5 VIRAL PLAYS"
-                onChange={e => dispatch({ type: 'SET_TOP_REGION', config: { title: e.target.value } })}
-                onBlur={() => dispatch({ type: 'COMMIT' })}
-              />
-            </label>
-            <label>
-              Top subtitle
-              <input
-                value={project.layout.topRegion.subtitle}
-                placeholder="e.g. YouTube Shorts Edition"
-                onChange={e => dispatch({ type: 'SET_TOP_REGION', config: { subtitle: e.target.value } })}
-                onBlur={() => dispatch({ type: 'COMMIT' })}
-              />
-            </label>
-
-            {/* Bottom region text */}
-            <h4 style={{ marginTop: 20 }}>Bottom banner text</h4>
-            <label>
-              Bottom caption / hook
-              <input
-                value={project.layout.bottomRegion.caption}
-                placeholder="e.g. Wait for number one!"
-                onChange={e => dispatch({ type: 'SET_BOTTOM_REGION', config: { caption: e.target.value } })}
-                onBlur={() => dispatch({ type: 'COMMIT' })}
-              />
-            </label>
-            <label>
-              Creator handle / watermark
-              <input
-                value={project.layout.bottomRegion.creatorHandle}
-                placeholder="e.g. @RankForgeCreator"
-                onChange={e => dispatch({ type: 'SET_BOTTOM_REGION', config: { creatorHandle: e.target.value } })}
-                onBlur={() => dispatch({ type: 'COMMIT' })}
-              />
             </label>
           </div>
         )}

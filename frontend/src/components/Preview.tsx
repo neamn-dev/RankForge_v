@@ -1,10 +1,34 @@
 import { useRef, useEffect, useMemo, useState } from 'react';
 import {
   ChevronDown, ChevronLeft, ChevronRight, Maximize, Pause, Play,
-  Volume2, VolumeX, Upload, ZoomIn, Film, Image as ImageIcon
+  Volume2, VolumeX, Upload, ZoomIn, Film, Image as ImageIcon,
+  MoreVertical
 } from 'lucide-react';
 import { useStore, useSelectedClip } from '../store';
 import { fmtTime } from '../types';
+
+function parseTitleWords(title: string, userWords?: { text: string; color: string }[]) {
+  if (userWords && userWords.length > 0) {
+    return userWords;
+  }
+  const words = (title || 'Top 5 Moments').trim().split(/\s+/);
+  return words.map((w) => {
+    const clean = w.toLowerCase().replace(/[^a-z0-9]/g, '');
+    let color = '#ffffff';
+    if (['funniest', 'best', 'craziest', 'unreal', 'insane', 'top', 'epic', 'wildest'].includes(clean)) {
+      color = '#facc15'; // Yellow
+    } else if (['trampoline', 'shark', 'sports', 'clutch', 'pool', 'dive', 'bounce'].includes(clean)) {
+      color = '#38bdf8'; // Sky Blue / Cyan
+    } else if (['fail', 'fails', 'disaster', 'danger', 'deadly', 'shocking', 'died'].includes(clean)) {
+      color = '#ef4444'; // Red
+    } else if (['gaming', 'win', 'legend'].includes(clean)) {
+      color = '#c084fc'; // Purple
+    } else if (['bruh', 'meme', 'comedy', 'humor'].includes(clean)) {
+      color = '#4ade80'; // Lime
+    }
+    return { text: w, color };
+  });
+}
 
 export default function Preview() {
   const { state, dispatch } = useStore();
@@ -26,6 +50,10 @@ export default function Preview() {
     () => project.clips.reduce((n, c) => n + c.duration, 0) + (hookOn ? 1.8 : 0),
     [project.clips, hookOn]
   );
+
+  const sortedRankingClips = useMemo(() => {
+    return [...project.clips].sort((a, b) => a.rank - b.rank);
+  }, [project.clips]);
 
   // Background music asset
   const bgMusic = useMemo(() => {
@@ -206,45 +234,35 @@ export default function Preview() {
               gap: layout.spacing,
             }}
           >
-            {/* ── Top Region ── */}
-            {layout.topRegion.enabled && (
+            {/* ── Top Region (Solid Banner Mode, Image 3) ── */}
+            {layout.topRegion.enabled && layout.topRegion.mode === 'banner' && (
               <div
-                className="sandwich-region sandwich-top"
+                className="sandwich-region sandwich-top banner-mode"
                 style={{
                   height: `${topH}%`,
-                  background: layout.topRegion.gradient || layout.topRegion.backgroundColor,
+                  background: layout.topRegion.gradient || layout.topRegion.backgroundColor || '#000000',
                   color: layout.topRegion.fontColor,
                   padding: layout.topRegion.padding,
                   textAlign: layout.topRegion.alignment,
-                  justifyContent: layout.topRegion.alignment === 'center' ? 'center'
-                    : layout.topRegion.alignment === 'right' ? 'flex-end' : 'flex-start',
+                  justifyContent: 'center',
                 }}
               >
                 {!trackOverlaysHidden && (
-                  <>
-                    {(layout.topRegion.title || project.title) && (
-                      <div
-                        className="region-title"
-                        style={{
-                          fontSize: `clamp(11px, ${layout.topRegion.fontSize * 0.6}px, ${layout.topRegion.fontSize}px)`,
-                          fontFamily: layout.topRegion.fontFamily,
-                          color: layout.topRegion.fontColor,
-                        }}
-                      >
-                        {layout.topRegion.title || project.title}
-                      </div>
-                    )}
-                    {layout.topRegion.subtitle && (
-                      <div
-                        className="region-subtitle"
-                        style={{
-                          fontSize: `clamp(8px, ${layout.topRegion.fontSize * 0.38}px, ${layout.topRegion.fontSize * 0.55}px)`,
-                        }}
-                      >
-                        {layout.topRegion.subtitle}
-                      </div>
-                    )}
-                  </>
+                  <div className="viral-title-container">
+                    <div
+                      className="region-title viral-3d-title"
+                      style={{
+                        fontSize: `clamp(14px, ${layout.topRegion.fontSize * 0.8}px, ${layout.topRegion.fontSize}px)`,
+                        fontFamily: layout.topRegion.fontFamily || 'Space Grotesk',
+                      }}
+                    >
+                      {parseTitleWords(layout.topRegion.title || project.title, layout.topRegion.titleWords).map((w, idx) => (
+                        <span key={idx} style={{ color: w.color }} className="viral-title-word">
+                          {w.text}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
             )}
@@ -357,6 +375,139 @@ export default function Preview() {
                 {/* Overlays Layer */}
                 {!trackOverlaysHidden && (
                   <>
+                    {/* Top Floating Overlay Controls (matching images 1, 2, 3) */}
+                    <div className="viral-stage-controls">
+                      <button
+                        className="stage-ctrl-btn"
+                        title={playing ? 'Pause' : 'Play'}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          dispatch({ type: 'SET_PLAYING', playing: !playing });
+                        }}
+                      >
+                        {playing ? <Pause size={17} fill="#ffffff" /> : <Play size={17} fill="#ffffff" />}
+                      </button>
+                      <button
+                        className="stage-ctrl-btn"
+                        title={previewMuted ? 'Unmute' : 'Mute'}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          dispatch({ type: 'TOGGLE_PREVIEW_MUTED' });
+                        }}
+                      >
+                        {previewMuted ? <VolumeX size={17} style={{ color: '#ef4444' }} /> : <Volume2 size={17} />}
+                      </button>
+                      <div style={{ flex: 1 }} />
+                      <button
+                        className="stage-ctrl-btn"
+                        title="Sandwich & Layout Options"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          dispatch({ type: 'SET_TOOL', tool: 'Layout' });
+                        }}
+                      >
+                        <MoreVertical size={17} />
+                      </button>
+                      <button
+                        className="stage-ctrl-btn"
+                        title="Toggle Fullscreen"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleFullscreen();
+                        }}
+                      >
+                        <Maximize size={16} />
+                      </button>
+                    </div>
+
+                    {/* Top Floating 3D Title (Overlay Mode, Images 1 & 2) */}
+                    {layout.topRegion.enabled && layout.topRegion.mode !== 'banner' && (
+                      <div
+                        className="viral-title-overlay"
+                        style={{
+                          position: 'absolute',
+                          top: '6%',
+                          left: '4%',
+                          right: '4%',
+                          textAlign: layout.topRegion.alignment || 'center',
+                          zIndex: 14,
+                          pointerEvents: 'none',
+                        }}
+                      >
+                        <div
+                          className="region-title viral-3d-title"
+                          style={{
+                            fontSize: `clamp(16px, ${layout.topRegion.fontSize * 0.9}px, ${layout.topRegion.fontSize}px)`,
+                            fontFamily: layout.topRegion.fontFamily || 'Space Grotesk',
+                          }}
+                        >
+                          {parseTitleWords(layout.topRegion.title || project.title, layout.topRegion.titleWords).map((w, idx) => (
+                            <span key={idx} style={{ color: w.color }} className="viral-title-word">
+                              {w.text}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* ── Persistent Left-Side Vertical Ranking List (Matches Images 1, 2, 3) ── */}
+                    {layout.rankingList?.enabled !== false && (
+                      <div
+                        className="viral-ranking-list"
+                        style={{
+                          position: 'absolute',
+                          left: `${layout.rankingList?.xOffset ?? 5}%`,
+                          top: `${layout.rankingList?.yOffset ?? 26}%`,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: `${layout.rankingList?.spacing ?? 8}px`,
+                          zIndex: 16,
+                          pointerEvents: 'auto',
+                        }}
+                      >
+                        {sortedRankingClips.map((c) => {
+                          const isCurrent = activeClip?.id === c.id;
+                          const numColor =
+                            c.rankColor ||
+                            c.color ||
+                            (c.rank === 1 ? '#facc15' : c.rank === 2 ? '#38bdf8' : c.rank === 3 ? '#ef4444' : '#ffffff');
+
+                          return (
+                            <div
+                              key={c.id}
+                              className={`viral-rank-row ${isCurrent ? 'active' : ''}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                let time = hookOn ? 1.8 : 0;
+                                for (const item of project.clips) {
+                                  if (item.id === c.id) break;
+                                  time += item.duration;
+                                }
+                                dispatch({ type: 'SET_PLAYHEAD', time });
+                                dispatch({ type: 'SET_SELECTED', clipId: c.id });
+                              }}
+                              title={`Jump to Rank #${c.rank}: ${c.label}`}
+                            >
+                              <span
+                                className="viral-rank-number"
+                                style={{
+                                  color: numColor,
+                                  fontSize: `clamp(18px, ${(layout.rankingList?.fontSize ?? 26) * 0.95}px, ${layout.rankingList?.fontSize ?? 26}px)`,
+                                }}
+                              >
+                                {c.rank}.
+                              </span>
+                              {(c.comment || c.emoji) && (
+                                <span className="viral-rank-comment">
+                                  {c.comment} {c.emoji}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
                     {/* Opening Hook Card (First 1.8s) */}
                     {showHook && (
                       <div className="hook">
@@ -364,7 +515,7 @@ export default function Preview() {
                       </div>
                     )}
 
-                    {/* Rank Badge */}
+                    {/* Single Rank Badge (Optional Corner Badge if enabled) */}
                     {layout.mainRegion.showRankBadge && activeClip && (
                       <div
                         className={`rank-badge badge-${layout.mainRegion.rankBadgeStyle}`}
@@ -420,14 +571,36 @@ export default function Preview() {
                         </span>
                       </div>
                     )}
+
+                    {/* Creator Watermark (Matching Image 2: "xiroranks") */}
+                    {layout.watermark?.enabled !== false && (layout.watermark?.text || layout.bottomRegion.creatorHandle) && (
+                      <div
+                        className="viral-watermark"
+                        style={{
+                          position: 'absolute',
+                          bottom: '5%',
+                          left: '50%',
+                          transform: 'translateX(-50%)',
+                          color: 'rgba(255, 255, 255, 0.75)',
+                          fontSize: 'clamp(10px, 1.4vw, 15px)',
+                          fontFamily: 'Space Grotesk, sans-serif',
+                          fontWeight: 600,
+                          letterSpacing: '0.04em',
+                          textShadow: '0 2px 8px rgba(0, 0, 0, 0.85)',
+                          zIndex: 12,
+                          pointerEvents: 'none',
+                          opacity: layout.watermark?.opacity ?? 0.8,
+                        }}
+                      >
+                        {layout.watermark?.text || layout.bottomRegion.creatorHandle}
+                      </div>
+                    )}
                   </>
                 )}
-
-                <small className="watermark">RANKFORGE</small>
               </div>
             </div>
 
-            {/* ── Bottom Region ── */}
+            {/* ── Bottom Region (Sandwich Footer) ── */}
             {layout.bottomRegion.enabled && (
               <div
                 className="sandwich-region sandwich-bottom"
